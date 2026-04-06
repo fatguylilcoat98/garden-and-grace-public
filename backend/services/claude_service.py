@@ -178,6 +178,41 @@ Respond ONLY with valid JSON:
     raw = _ask_claude(system, messages, 1500)
     return _safe_parse(raw)
 
+# ── CATCH ID + RECIPE ────────────────────────────────────────────────────────
+
+def identify_catch_and_recipe(image_bytes: bytes, media_type: str = "image/jpeg") -> dict:
+    system = """You are a friendly fishing guide AND a great home cook. Someone just caught a fish and wants to know what it is and how to cook it.
+Plain English. Warm, practical, encouraging tone.
+First identify the fish, then give a delicious recipe for it.
+Respond ONLY with valid JSON:
+{
+  "fish_name": "Common name of the fish",
+  "fish_details": "2-3 sentences about this fish — what it is, where it's common, any fun facts.",
+  "size_estimate": "Rough size estimate based on the photo.",
+  "keep_or_release": "Whether this fish is typically a keeper or catch-and-release, and why.",
+  "taste_profile": "What this fish tastes like — mild, flaky, rich, firm, etc.",
+  "recipe_name": "Name of a great recipe for this fish",
+  "recipe_description": "2-3 warm sentences about this dish.",
+  "prep_time": "Prep time",
+  "cook_time": "Cook time",
+  "serves": "Number of servings",
+  "ingredients": [
+    {"amount": "1 tbsp", "item": "ingredient name"}
+  ],
+  "instructions": [
+    "Step 1: ...",
+    "Step 2: ..."
+  ],
+  "cooking_tips": ["tip 1", "tip 2"],
+  "side_suggestions": "2-3 sides that go well with this fish."
+}"""
+    messages = [{"role": "user", "content": [
+        _encode_image(image_bytes, media_type),
+        {"type": "text", "text": "I just caught this fish! What is it, and give me a great recipe to cook it."}
+    ]}]
+    raw = _ask_claude(system, messages, 1800)
+    return _safe_parse(raw)
+
 # ── HELPERS ───────────────────────────────────────────────────────────────────
 
 def _safe_parse(raw: str) -> dict:

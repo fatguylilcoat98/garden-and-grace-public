@@ -65,6 +65,19 @@ async def fishing_report(request: Request, req: FishingRequest):
     verse = get_verse("fishing", mode) if mode != "off" else None
     return {"result": result, "verse": verse}
 
+# ── CATCH ID + RECIPE ────────────────────────────────────────────────────────
+
+@router.post("/fishing/catch-recipe")
+async def catch_recipe(request: Request, image: UploadFile = File(...)):
+    image_bytes = await image.read()
+    media_type = image.content_type or "image/jpeg"
+    result = claude_service.identify_catch_and_recipe(image_bytes, media_type)
+    if "error" in result:
+        raise HTTPException(status_code=500, detail="Could not identify this catch. Please try a clearer photo.")
+    mode = _verse_mode(request)
+    verse = get_verse("fishing", mode) if mode != "off" else None
+    return {"result": result, "verse": verse}
+
 # ── RECIPE BUILDER ────────────────────────────────────────────────────────────
 
 @router.post("/recipe")

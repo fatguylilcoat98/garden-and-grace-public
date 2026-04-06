@@ -170,6 +170,147 @@ function renderFishingResult(r, verse) {
   document.getElementById("fishing-result").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
+// ── WHAT DID I CATCH? (ID + Recipe) ──────────────────────────────
+
+let _catchIdFile = null;
+
+function showCatchIdForm() {
+  document.getElementById("catch-id-area").style.display = "block";
+  document.getElementById("catch-id-area").scrollIntoView({ behavior: "smooth" });
+  document.getElementById("catch-id-result").style.display = "none";
+  document.getElementById("catch-id-photo-area").style.display = "flex";
+  document.getElementById("catch-id-preview").style.display = "none";
+  _catchIdFile = null;
+}
+
+function handleCatchIdPhoto(input) {
+  const file = input.files[0];
+  if (!file) return;
+  _catchIdFile = file;
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById("catch-id-preview").src = e.target.result;
+    document.getElementById("catch-id-preview").style.display = "block";
+    document.getElementById("catch-id-photo-area").style.display = "none";
+    // Also set as catch photo data for auto-filling the catch post
+    _catchPhotoData = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+async function identifyCatch() {
+  if (!_catchIdFile) { toast("Take a photo of your catch first!", "error"); return; }
+
+  const btn = document.getElementById("catch-id-btn");
+  btn.disabled = true;
+  btn.textContent = "Identifying… 🐟";
+
+  const formData = new FormData();
+  formData.append("image", _catchIdFile);
+
+  try {
+    const data = await apiPost("/features/fishing/catch-recipe", formData, true);
+    console.log("[Catch ID] Raw result:", JSON.stringify(data.result, null, 2));
+    renderCatchIdResult(data.result, data.verse);
+
+    // Auto-fill the catch post form
+    if (data.result.fish_name) {
+      document.getElementById("catch-fish").value = data.result.fish_name;
+    }
+    // Set the catch photo preview too
+    document.getElementById("catch-preview").src = document.getElementById("catch-id-preview").src;
+    document.getElementById("catch-preview").style.display = "block";
+    document.getElementById("catch-photo-area").style.display = "none";
+
+  } catch (err) {
+    if (err.message !== "LIMIT_REACHED") toast(err.message, "error");
+  }
+  btn.disabled = false;
+  btn.textContent = "What Did I Catch? 🐟";
+}
+
+function renderCatchIdResult(r, verse) {
+  const ingredients = (r.ingredients || []).map(i => {
+    if (typeof i === "string") return `<li>${i}</li>`;
+    return `<li><strong>${i.amount || ""}</strong> ${i.item || ""}</li>`;
+  }).join("");
+
+  const steps = (r.instructions || []).map(s =>
+    `<li style="margin-bottom:8px;">${s}</li>`
+  ).join("");
+
+  const tips = (r.cooking_tips || []).map(t => `<li>${t}</li>`).join("");
+
+  const el = document.getElementById("catch-id-result");
+  el.innerHTML = `
+    <div style="text-align:center;margin-bottom:16px;">
+      <div style="font-size:1.4rem;font-weight:700;color:var(--text);font-family:var(--font-display);">🐟 ${r.fish_name || "Your Catch"}</div>
+      <div style="font-size:0.9rem;color:var(--text-soft);margin-top:4px;">${r.size_estimate || ""}</div>
+    </div>
+
+    <p class="result-body">${r.fish_details || ""}</p>
+
+    <div style="padding:12px;background:var(--cream-dk);border-radius:var(--radius-sm);margin:12px 0;">
+      <div style="font-weight:600;color:var(--text);margin-bottom:4px;">Keep or Release?</div>
+      <div style="font-size:0.9rem;color:var(--text-soft);">${r.keep_or_release || "Check local regulations."}</div>
+    </div>
+
+    <div style="padding:12px;background:var(--cream-dk);border-radius:var(--radius-sm);margin-bottom:16px;">
+      <div style="font-weight:600;color:var(--text);margin-bottom:4px;">Taste</div>
+      <div style="font-size:0.9rem;color:var(--text-soft);">${r.taste_profile || ""}</div>
+    </div>
+
+    <div class="result-section-label">🍽️ ${r.recipe_name || "Recipe"}</div>
+    <p class="result-body">${r.recipe_description || ""}</p>
+
+    <div style="display:flex;gap:16px;margin:10px 0 14px;font-size:0.85rem;color:var(--text-soft);">
+      ${r.prep_time ? `<span>Prep: ${r.prep_time}</span>` : ""}
+      ${r.cook_time ? `<span>Cook: ${r.cook_time}</span>` : ""}
+      ${r.serves ? `<span>Serves: ${r.serves}</span>` : ""}
+    </div>
+
+    ${ingredients ? `
+    <div class="result-section-label">Ingredients</div>
+    <ul class="result-list">${ingredients}</ul>
+    ` : ""}
+
+    ${steps ? `
+    <div class="result-section-label">Instructions</div>
+    <ol style="padding-left:20px;margin-bottom:14px;color:var(--text);line-height:1.7;font-size:0.95rem;">${steps}</ol>
+    ` : ""}
+
+    ${tips ? `
+    <div class="result-section-label">Tips</div>
+    <ul class="result-list">${tips}</ul>
+    ` : ""}
+
+    ${r.side_suggestions ? `
+    <div style="padding:12px;background:var(--cream-dk);border-radius:var(--radius-sm);margin-top:12px;">
+      <div style="font-weight:600;color:var(--text);margin-bottom:4px;">Goes great with</div>
+      <div style="font-size:0.9rem;color:var(--text-soft);">${r.side_suggestions}</div>
+    </div>
+    ` : ""}
+
+    <div style="text-align:center;margin-top:16px;">
+      <button class="btn-primary" onclick="showCatchForm();document.getElementById('catch-id-area').style.display='none';" style="font-size:0.9rem;padding:10px 20px;">
+        📸 Post This Catch
+      </button>
+    </div>
+  `;
+  el.style.display = "block";
+
+  if (verse) {
+    const v = document.getElementById("fishing-verse");
+    v.innerHTML = `
+      <div class="verse-banner-text">"${verse.verse}"</div>
+      <div class="verse-banner-ref">— ${verse.ref}</div>
+    `;
+    v.classList.add("visible");
+  }
+
+  el.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 // ── POST A CATCH ─────────────────────────────────────────────────
 
 function showCatchForm() {
