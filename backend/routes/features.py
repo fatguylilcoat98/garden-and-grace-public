@@ -121,6 +121,51 @@ async def email_build_pdf(image: UploadFile = File(...), email: str = ""):
         raise HTTPException(status_code=500, detail="Plan ready but email failed. Please try again.")
     return {"message": "Build plan sent! Check your inbox.", "project_name": result.get("project_name")}
 
+# ── CATCHES ───────────────────────────────────────────────────────────────────
+
+class CatchPost(BaseModel):
+    fish_type: str
+    location: str
+    note: Optional[str] = ""
+    image_data: Optional[str] = ""
+    posted_by: Optional[str] = "Anonymous"
+
+@router.post("/catches")
+async def post_catch(catch: CatchPost):
+    from ..db import get_db, execute
+    if not catch.fish_type.strip():
+        raise HTTPException(status_code=400, detail="Please enter the fish type.")
+    if not catch.location.strip():
+        raise HTTPException(status_code=400, detail="Please enter a location.")
+    # Limit input lengths
+    fish_type = catch.fish_type.strip()[:100]
+    location = catch.location.strip()[:200]
+    note = (catch.note or "").strip()[:300]
+    posted_by = (catch.posted_by or "Anonymous").strip()[:50]
+    # Store base64 image data (limited to ~2MB encoded)
+    image_data = (catch.image_data or "")[:2_800_000]
+    with get_db() as conn:
+        execute(conn, """
+            INSERT INTO catches (fish_type, location, note, image_data, posted_by)
+            VALUES ($1, $2, $3, $4, $5)
+        """, [fish_type, location, note, image_data, posted_by])
+    return {"message": "Catch posted!", "fish_type": fish_type}
+
+@router.get("/catches")
+async def get_catches(limit: int = 20):
+    from ..db import get_db, query_all
+    limit = min(max(1, limit), 50)
+    with get_db() as conn:
+        catches = query_all(conn, f"""
+            SELECT id, fish_type, location, note, image_data, posted_by, created_at
+            FROM catches ORDER BY created_at DESC LIMIT {limit}
+        """)
+    # Format timestamps
+    for c in catches:
+        if c.get("created_at"):
+            c["created_at"] = str(c["created_at"])
+    return {"catches": catches}
+
 # ── DAILY SCRIPTURE ───────────────────────────────────────────────────────────
 
 @router.get("/daily-verse")

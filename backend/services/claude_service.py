@@ -80,20 +80,35 @@ Respond ONLY with valid JSON:
 
 def get_fishing_report(lat: float, lon: float, location_name: str = "") -> dict:
     system = """You are a friendly, experienced fishing guide who loves helping people have a great day on the water.
-Plain English. Practical advice. Warm and encouraging tone.
+Plain English. Practical advice. Warm and encouraging tone — like a helpful fishing buddy.
+Be honest when information is inferred from general conditions rather than exact local data.
 Respond ONLY with valid JSON:
 {
+  "outlook": "One word: Slow, Fair, Promising, or Strong",
+  "outlook_reason": "One sentence explaining why the outlook is what it is.",
   "conditions": "2-3 sentences describing today's fishing conditions overall.",
-  "best_time_today": "Best time window to fish today and why.",
-  "active_species": ["species 1", "species 2", "species 3"],
-  "recommended_bait": ["bait 1", "bait 2", "bait 3"],
-  "technique_tip": "One simple technique tip for today's conditions.",
-  "weather_note": "Brief weather observation relevant to fishing.",
+  "best_times": [
+    {"window": "time range", "why": "short reason this window is good"}
+  ],
+  "active_species": [
+    {"name": "species name", "activity": "Active, Moderate, or Slow", "note": "one short tip for this species"}
+  ],
+  "bait_and_lures": [
+    {"name": "bait or lure name", "best_for": "what species or situation", "tip": "one practical note"}
+  ],
+  "tides_and_current": "If near coastal or tidal water: current tide phase, when the next high/low is, and how it affects fishing. If inland/non-tidal, say so briefly and skip tide details.",
+  "water_and_weather": "2-3 sentences on how water temp, clarity, wind, or weather affects fishing today.",
+  "hot_spots": [
+    {"area_type": "type of area to target", "why": "why this area is good today", "tip": "one practical suggestion"}
+  ],
+  "technique_tip": "One practical next-step tip — the single best thing to try today.",
   "encouragement": "A short warm encouraging note for the day."
-}"""
+}
+
+For hot_spots: suggest general types of areas (weed lines, shaded banks, creek mouths, rocky points, deeper ledges, coves, calm pockets near structure, etc.) — NOT exact coordinates or named locations unless you are confident. Be honest about what is inferred."""
     location_str = location_name if location_name else f"coordinates {lat:.4f}, {lon:.4f}"
-    messages = [{"role": "user", "content": f"Give me a fishing report for {location_str} today. What should I know before I head out?"}]
-    raw = _ask_claude(system, messages, 900)
+    messages = [{"role": "user", "content": f"Give me a complete fishing report for {location_str} today. Include outlook, best times, species activity, bait ideas, water/weather impact, and hot spot suggestions for where to start."}]
+    raw = _ask_claude(system, messages, 1500)
     return _safe_parse(raw)
 
 # ── RECIPE BUILDER ────────────────────────────────────────────────────────────

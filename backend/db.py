@@ -66,6 +66,17 @@ def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        conn.run("""
+            CREATE TABLE IF NOT EXISTS catches (
+                id SERIAL PRIMARY KEY,
+                fish_type TEXT NOT NULL,
+                location TEXT NOT NULL,
+                note TEXT DEFAULT '',
+                image_data TEXT DEFAULT '',
+                posted_by TEXT DEFAULT 'Anonymous',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
 
 @contextmanager
 def get_db():
