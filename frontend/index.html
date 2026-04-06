@@ -53,7 +53,7 @@
   ══════════════════════════════════════════ -->
   <div id="screen-home" class="screen">
 
-    <div class="home-header">
+    <div class="home-header" style="position:relative;">
       <div class="home-greeting" id="home-greeting">Good morning 🌿</div>
       <div class="home-date" id="home-date"></div>
       <div class="daily-verse-card">
@@ -61,12 +61,16 @@
         <div class="daily-verse-ref" id="daily-verse-ref">— Psalm 118:24</div>
       </div>
 
-      <!-- Closing words mode toggle -->
-      <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:12px;">
-        <button class="verse-mode-btn" data-mode="scripture" onclick="setVerseMode('scripture')" style="padding:6px 14px;border-radius:20px;border:1px solid var(--cream-dk);background:var(--white);font-size:0.8rem;color:var(--text-soft);cursor:pointer;">📖 Scripture</button>
-        <button class="verse-mode-btn" data-mode="sayings" onclick="setVerseMode('sayings')" style="padding:6px 14px;border-radius:20px;border:1px solid var(--cream-dk);background:var(--white);font-size:0.8rem;color:var(--text-soft);cursor:pointer;">✨ Sayings</button>
-        <button class="verse-mode-btn" data-mode="jokes" onclick="setVerseMode('jokes')" style="padding:6px 14px;border-radius:20px;border:1px solid var(--cream-dk);background:var(--white);font-size:0.8rem;color:var(--text-soft);cursor:pointer;">😄 Jokes</button>
-        <button class="verse-mode-btn" data-mode="off" onclick="setVerseMode('off')" style="padding:6px 14px;border-radius:20px;border:1px solid var(--cream-dk);background:var(--white);font-size:0.8rem;color:var(--text-soft);cursor:pointer;">Off</button>
+      <!-- Settings menu (top-right corner) -->
+      <div id="settings-menu" style="position:absolute;top:16px;right:16px;z-index:10;">
+        <button onclick="toggleSettingsMenu()" style="width:36px;height:36px;border-radius:50%;border:1px solid var(--cream-dk);background:var(--white);font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,0.08);">⚙️</button>
+        <div id="settings-dropdown" style="display:none;position:absolute;right:0;top:42px;background:var(--white);border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.12);border:1px solid var(--cream-dk);padding:12px 14px;min-width:180px;">
+          <div style="font-size:0.75rem;font-weight:600;color:var(--text-soft);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">Closing Words</div>
+          <button class="verse-mode-btn" data-mode="scripture" onclick="setVerseMode('scripture')" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 10px;border:none;background:none;border-radius:8px;font-size:0.9rem;color:var(--text);cursor:pointer;text-align:left;">📖 Scripture</button>
+          <button class="verse-mode-btn" data-mode="sayings" onclick="setVerseMode('sayings')" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 10px;border:none;background:none;border-radius:8px;font-size:0.9rem;color:var(--text);cursor:pointer;text-align:left;">✨ Sayings</button>
+          <button class="verse-mode-btn" data-mode="jokes" onclick="setVerseMode('jokes')" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 10px;border:none;background:none;border-radius:8px;font-size:0.9rem;color:var(--text);cursor:pointer;text-align:left;">😄 Jokes</button>
+          <button class="verse-mode-btn" data-mode="off" onclick="setVerseMode('off')" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 10px;border:none;background:none;border-radius:8px;font-size:0.9rem;color:var(--text);cursor:pointer;text-align:left;">🚫 Off</button>
+        </div>
       </div>
     </div>
 
@@ -241,9 +245,9 @@
       <div id="catch-id-area" style="display:none;margin-top:16px;background:var(--white);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);">
         <div style="font-family:var(--font-display);font-size:1.1rem;color:var(--text);margin-bottom:14px;text-align:center;">Snap a photo of your catch 🐟</div>
 
+        <input type="file" id="catch-id-photo-input" accept="image/*" capture="environment" style="display:none;" onchange="handleCatchIdPhoto(this)" />
         <div id="catch-id-photo-area" style="display:flex;align-items:center;justify-content:center;border:2px dashed var(--cream-dk);border-radius:var(--radius-sm);padding:24px;margin-bottom:12px;cursor:pointer;text-align:center;color:var(--text-soft);" onclick="document.getElementById('catch-id-photo-input').click()">
           📸 Tap to photograph your catch
-          <input type="file" id="catch-id-photo-input" accept="image/*" style="display:none;" onchange="handleCatchIdPhoto(this)" />
         </div>
         <img id="catch-id-preview" style="display:none;width:100%;border-radius:var(--radius-sm);margin-bottom:12px;max-height:240px;object-fit:cover;" alt="Catch preview" />
 
@@ -257,9 +261,9 @@
       <div id="catch-form-area" style="display:none;margin-top:16px;background:var(--white);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);">
         <div style="font-family:var(--font-display);font-size:1.1rem;color:var(--text);margin-bottom:14px;text-align:center;">Share Your Catch 🎣</div>
 
+        <input type="file" id="catch-photo-input" accept="image/*" capture="environment" style="display:none;" onchange="handleCatchPhoto(this)" />
         <div id="catch-photo-area" style="display:flex;align-items:center;justify-content:center;border:2px dashed var(--cream-dk);border-radius:var(--radius-sm);padding:24px;margin-bottom:12px;cursor:pointer;text-align:center;color:var(--text-soft);" onclick="document.getElementById('catch-photo-input').click()">
           📸 Tap to add a photo
-          <input type="file" id="catch-photo-input" accept="image/*" style="display:none;" onchange="handleCatchPhoto(this)" />
         </div>
         <img id="catch-preview" style="display:none;width:100%;border-radius:var(--radius-sm);margin-bottom:12px;max-height:200px;object-fit:cover;" alt="Catch preview" />
 

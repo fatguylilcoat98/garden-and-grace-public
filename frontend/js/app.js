@@ -36,10 +36,30 @@ function updateVerseModeUI() {
   const mode = getVerseMode();
   document.querySelectorAll(".verse-mode-btn").forEach(btn => {
     const isActive = btn.dataset.mode === mode;
-    btn.style.background = isActive ? "var(--green, #3d6b3f)" : "var(--white, #fff)";
-    btn.style.color = isActive ? "#fff" : "var(--text-soft)";
-    btn.style.borderColor = isActive ? "var(--green, #3d6b3f)" : "var(--cream-dk)";
+    btn.style.background = isActive ? "var(--green, #3d6b3f)" : "transparent";
+    btn.style.color = isActive ? "#fff" : "var(--text, #333)";
+    btn.style.borderRadius = "8px";
   });
+}
+
+function toggleSettingsMenu() {
+  const dd = document.getElementById("settings-dropdown");
+  if (!dd) return;
+  const isOpen = dd.style.display !== "none";
+  dd.style.display = isOpen ? "none" : "block";
+  // Close on outside click
+  if (!isOpen) {
+    setTimeout(() => {
+      document.addEventListener("click", _closeSettingsOutside, { once: true });
+    }, 10);
+  }
+}
+
+function _closeSettingsOutside(e) {
+  const menu = document.getElementById("settings-menu");
+  if (menu && !menu.contains(e.target)) {
+    document.getElementById("settings-dropdown").style.display = "none";
+  }
 }
 
 function verseParam() {

@@ -60,21 +60,33 @@ function renderFishingResult(r, verse) {
   const outlook = r.outlook || "Fair";
   const outlookColor = _outlookColor(outlook);
 
-  // Best times
-  const times = (r.best_times || []).map(t =>
-    `<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--cream-dk);">
-      <span style="font-weight:600;color:var(--green);min-width:90px;">${t.window}</span>
-      <span style="color:var(--text-soft);">${t.why}</span>
-    </div>`
-  ).join("");
+  // Helper: safely get a displayable string from any value
+  function _val(v) {
+    if (v === null || v === undefined) return "";
+    if (typeof v === "string") return v;
+    if (typeof v === "number") return String(v);
+    // For objects/arrays, join all string values
+    if (Array.isArray(v)) return v.map(_val).join(", ");
+    if (typeof v === "object") return Object.values(v).map(_val).filter(Boolean).join(" — ");
+    return String(v);
+  }
 
-  // Species — handle string, object, or object with missing fields
+  // Best times
+  const times = (r.best_times || []).map(t => {
+    if (typeof t === "string") return `<div style="padding:6px 0;border-bottom:1px solid var(--cream-dk);">${t}</div>`;
+    return `<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--cream-dk);">
+      <span style="font-weight:600;color:var(--green);min-width:90px;">${_val(t.window) || _val(t.time) || ""}</span>
+      <span style="color:var(--text-soft);">${_val(t.why) || _val(t.reason) || ""}</span>
+    </div>`;
+  }).join("");
+
+  // Species
   const speciesRaw = r.active_species || [];
   const species = speciesRaw.map(s => {
     if (typeof s === "string") return `<li>${s}</li>`;
-    const name = s.name || s.species || JSON.stringify(s);
-    const activity = s.activity || "";
-    const note = s.note || s.tip || "";
+    const name = _val(s.name) || _val(s.species) || _val(s.fish) || Object.values(s).find(v => typeof v === "string") || "Unknown";
+    const activity = _val(s.activity) || _val(s.status) || "";
+    const note = _val(s.note) || _val(s.tip) || "";
     const actColor = activity.toLowerCase() === "active" ? "var(--green)" :
                      activity.toLowerCase() === "slow" ? "var(--brown-lt)" : "var(--gold-dark, #b8860b)";
     return `<li>
@@ -84,13 +96,13 @@ function renderFishingResult(r, verse) {
     </li>`;
   }).join("") || "<li style='color:var(--text-soft);'>No species data available</li>";
 
-  // Bait & lures — handle string, object, or object with missing fields
+  // Bait & lures
   const baitsRaw = r.bait_and_lures || r.recommended_bait || [];
   const baits = baitsRaw.map(b => {
     if (typeof b === "string") return `<li>${b}</li>`;
-    const name = b.name || b.bait || b.lure || JSON.stringify(b);
-    const bestFor = b.best_for || b.bestFor || b["best for"] || "";
-    const tip = b.tip || b.note || "";
+    const name = _val(b.name) || _val(b.bait) || _val(b.lure) || Object.values(b).find(v => typeof v === "string") || "Unknown";
+    const bestFor = _val(b.best_for) || _val(b.bestFor) || "";
+    const tip = _val(b.tip) || _val(b.note) || "";
     return `<li>
       <strong>${name}</strong>
       ${bestFor ? `<span style="font-size:0.8rem;color:var(--text-soft);"> — ${bestFor}</span>` : ""}
@@ -98,12 +110,12 @@ function renderFishingResult(r, verse) {
     </li>`;
   }).join("") || "<li style='color:var(--text-soft);'>No bait data available</li>";
 
-  // Hot spots — handle string or object
+  // Hot spots
   const hotSpots = (r.hot_spots || []).map(h => {
     if (typeof h === "string") return `<div style="padding:10px 12px;background:var(--cream-dk);border-radius:var(--radius-sm);margin-bottom:8px;font-size:0.9rem;color:var(--text-soft);">📍 ${h}</div>`;
-    const area = h.area_type || h.area || h.location || "Suggested area";
-    const why = h.why || h.reason || "";
-    const tip = h.tip || "";
+    const area = _val(h.area_type) || _val(h.area) || _val(h.location) || "Suggested area";
+    const why = _val(h.why) || _val(h.reason) || "";
+    const tip = _val(h.tip) || "";
     return `<div style="padding:10px 12px;background:var(--cream-dk);border-radius:var(--radius-sm);margin-bottom:8px;">
       <div style="font-weight:600;color:var(--text);margin-bottom:4px;">📍 ${area}</div>
       <div style="font-size:0.9rem;color:var(--text-soft);line-height:1.5;">${why}${tip ? " " + tip : ""}</div>
