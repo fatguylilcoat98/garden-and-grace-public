@@ -111,9 +111,87 @@ def usage_info(request: Request):
     }
 
 
+# ── BUG TESTER ───────────────────────────────────────────────────────────────
+
+@app.get("/test/api")
+def test_api():
+    """Run backend health checks and return results."""
+    results = []
+
+    # 1. App running
+    results.append({"test": "App running", "pass": True})
+
+    # 2. Anthropic key set
+    import anthropic
+    key = os.environ.get("ANTHROPIC_API_KEY", "")
+    results.append({"test": "ANTHROPIC_API_KEY set", "pass": bool(key and len(key) > 10)})
+
+    # 3. SendGrid key set
+    sg_key = os.environ.get("SENDGRID_API_KEY", "")
+    results.append({"test": "SENDGRID_API_KEY set", "pass": bool(sg_key and len(sg_key) > 10)})
+
+    # 4. Database connection
+    try:
+        from .db import get_db, query_one
+        with get_db() as conn:
+            query_one(conn, "SELECT 1 AS ok")
+        results.append({"test": "Database connection", "pass": True})
+    except Exception as e:
+        results.append({"test": "Database connection", "pass": False, "error": str(e)[:200]})
+
+    # 5. Catches table exists
+    try:
+        from .db import get_db, query_all
+        with get_db() as conn:
+            query_all(conn, "SELECT COUNT(*) FROM catches")
+        results.append({"test": "Catches table exists", "pass": True})
+    except Exception as e:
+        results.append({"test": "Catches table exists", "pass": False, "error": str(e)[:200]})
+
+    # 6. KJV service works (all modes)
+    try:
+        from .services.kjv_service import get_verse, get_daily_verse
+        for mode in ["scripture", "sayings", "jokes"]:
+            v = get_verse("fishing", mode)
+            assert v and v.get("verse"), f"{mode} returned empty"
+        dv = get_daily_verse("scripture")
+        assert dv and dv.get("verse")
+        results.append({"test": "Verse service (all modes)", "pass": True})
+    except Exception as e:
+        results.append({"test": "Verse service (all modes)", "pass": False, "error": str(e)[:200]})
+
+    # 7. Claude service importable
+    try:
+        from .services import claude_service
+        assert hasattr(claude_service, "identify_plant")
+        assert hasattr(claude_service, "get_fishing_report")
+        assert hasattr(claude_service, "identify_catch_and_recipe")
+        results.append({"test": "Claude service functions exist", "pass": True})
+    except Exception as e:
+        results.append({"test": "Claude service functions exist", "pass": False, "error": str(e)[:200]})
+
+    # 8. Rate limiter working
+    results.append({"test": "Rate limiter loaded", "pass": COOLDOWN_SECONDS > 0 and DAILY_LIMIT_FREE > 0,
+                     "info": f"Cooldown: {COOLDOWN_SECONDS}s, Daily: {DAILY_LIMIT_FREE}"})
+
+    passed = sum(1 for r in results if r["pass"])
+    return {
+        "summary": f"{passed}/{len(results)} passed",
+        "all_pass": passed == len(results),
+        "results": results,
+    }
+
+
 frontend_path = os.path.join(os.path.dirname(__file__), "..", "frontend")
 if os.path.exists(frontend_path):
     app.mount("/static", StaticFiles(directory=frontend_path), name="static")
+
+    @app.get("/test")
+    def serve_test_page():
+        test_html = os.path.join(frontend_path, "test.html")
+        if os.path.exists(test_html):
+            return FileResponse(test_html)
+        return {"error": "Test page not found"}
 
     @app.get("/{full_path:path}")
     def serve_frontend(full_path: str):

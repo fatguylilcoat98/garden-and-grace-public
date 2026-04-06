@@ -1,0 +1,299 @@
+<!--
+  Garden & Grace — Bug Tester
+  The Good Neighbor Guard
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Garden & Grace — Bug Tester</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, system-ui, sans-serif; background: #1a1a2e; color: #e0e0e0; padding: 16px; min-height: 100vh; }
+    h1 { font-size: 1.4rem; text-align: center; margin-bottom: 4px; color: #fff; }
+    .sub { text-align: center; font-size: 0.85rem; color: #888; margin-bottom: 20px; }
+    .section { background: #16213e; border-radius: 12px; padding: 16px; margin-bottom: 16px; border: 1px solid #1a3a5c; }
+    .section-title { font-size: 0.9rem; font-weight: 700; color: #4ecca3; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.1em; }
+    .test-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #1a2a4a; font-size: 0.9rem; }
+    .test-row:last-child { border-bottom: none; }
+    .badge { padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 700; }
+    .pass { background: #0f5132; color: #4ecca3; }
+    .fail { background: #5c1a1a; color: #ff6b6b; }
+    .wait { background: #3a3a1a; color: #f0a500; }
+    .skip { background: #2a2a3a; color: #888; }
+    .info { font-size: 0.75rem; color: #666; margin-top: 2px; }
+    .error { font-size: 0.75rem; color: #ff6b6b; margin-top: 2px; }
+    .btn { display: block; width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 0.95rem; font-weight: 600; cursor: pointer; margin-bottom: 8px; }
+    .btn-run { background: #4ecca3; color: #1a1a2e; }
+    .btn-run:disabled { opacity: 0.5; }
+    .btn-feat { background: #1a3a5c; color: #4ecca3; border: 1px solid #4ecca3; }
+    .summary { text-align: center; font-size: 1.2rem; font-weight: 700; margin: 16px 0; }
+    .summary.good { color: #4ecca3; }
+    .summary.bad { color: #ff6b6b; }
+    .log { background: #0d1117; border-radius: 8px; padding: 12px; font-family: monospace; font-size: 0.75rem; color: #8b949e; max-height: 200px; overflow-y: auto; margin-top: 8px; white-space: pre-wrap; word-break: break-all; }
+    .feat-result { margin-top: 10px; }
+  </style>
+</head>
+<body>
+
+<h1>🌿 Garden & Grace Bug Tester</h1>
+<div class="sub">Tap "Run All Tests" to check everything</div>
+
+<button class="btn btn-run" id="runAllBtn" onclick="runAll()">Run All Tests</button>
+
+<div class="summary" id="summary"></div>
+
+<!-- Backend Tests -->
+<div class="section" id="backend-section">
+  <div class="section-title">Backend Tests</div>
+  <div id="backend-results"><div class="test-row"><span>Waiting...</span><span class="badge wait">—</span></div></div>
+</div>
+
+<!-- Frontend Tests -->
+<div class="section" id="frontend-section">
+  <div class="section-title">Frontend Tests</div>
+  <div id="frontend-results"></div>
+</div>
+
+<!-- Feature Endpoint Tests -->
+<div class="section">
+  <div class="section-title">Feature Endpoints</div>
+  <button class="btn btn-feat" onclick="testEndpoint('/features/daily-verse', 'GET')">Test Daily Verse</button>
+  <button class="btn btn-feat" onclick="testEndpoint('/features/daily-verse?verse_mode=jokes', 'GET')">Test Jokes Mode</button>
+  <button class="btn btn-feat" onclick="testEndpoint('/features/daily-verse?verse_mode=sayings', 'GET')">Test Sayings Mode</button>
+  <button class="btn btn-feat" onclick="testEndpoint('/features/catches?limit=5', 'GET')">Test Get Catches</button>
+  <button class="btn btn-feat" onclick="testEndpoint('/usage', 'GET')">Test Usage Counter</button>
+  <button class="btn btn-feat" onclick="testFishing()">Test Fishing Report (live API call)</button>
+  <div id="endpoint-log" class="log" style="display:none;"></div>
+</div>
+
+<!-- Camera Test -->
+<div class="section">
+  <div class="section-title">Camera / Photo Test</div>
+  <input type="file" id="cam-test" accept="image/*" capture="environment" style="display:none;" onchange="testCamResult(this)" />
+  <button class="btn btn-feat" onclick="document.getElementById('cam-test').click()">Test Camera</button>
+  <input type="file" id="file-test" accept="image/*" style="display:none;" onchange="testCamResult(this)" />
+  <button class="btn btn-feat" onclick="document.getElementById('file-test').click()">Test File Picker</button>
+  <div id="cam-result" style="margin-top:8px;"></div>
+</div>
+
+<script>
+const API = "";
+
+async function runAll() {
+  const btn = document.getElementById("runAllBtn");
+  btn.disabled = true;
+  btn.textContent = "Running...";
+
+  // Backend tests
+  await runBackend();
+  // Frontend tests
+  runFrontend();
+
+  btn.disabled = false;
+  btn.textContent = "Run All Tests";
+}
+
+async function runBackend() {
+  const el = document.getElementById("backend-results");
+  el.innerHTML = '<div class="test-row"><span>Running...</span><span class="badge wait">...</span></div>';
+
+  try {
+    const res = await fetch(API + "/test/api");
+    const data = await res.json();
+
+    el.innerHTML = data.results.map(r => `
+      <div class="test-row">
+        <div>
+          ${r.test}
+          ${r.info ? `<div class="info">${r.info}</div>` : ""}
+          ${r.error ? `<div class="error">${r.error}</div>` : ""}
+        </div>
+        <span class="badge ${r.pass ? 'pass' : 'fail'}">${r.pass ? 'PASS' : 'FAIL'}</span>
+      </div>
+    `).join("");
+
+    const sum = document.getElementById("summary");
+    sum.textContent = data.summary + (data.all_pass ? " — All clear!" : " — Issues found");
+    sum.className = "summary " + (data.all_pass ? "good" : "bad");
+
+  } catch (e) {
+    el.innerHTML = `<div class="test-row"><div>Backend unreachable<div class="error">${e.message}</div></div><span class="badge fail">FAIL</span></div>`;
+    document.getElementById("summary").textContent = "Backend unreachable";
+    document.getElementById("summary").className = "summary bad";
+  }
+}
+
+function runFrontend() {
+  const results = [];
+
+  // 1. localStorage works
+  try {
+    localStorage.setItem("_gg_test", "1");
+    localStorage.removeItem("_gg_test");
+    results.push({ test: "localStorage", pass: true });
+  } catch {
+    results.push({ test: "localStorage", pass: false, error: "Not available" });
+  }
+
+  // 2. Geolocation available
+  results.push({ test: "Geolocation API", pass: !!navigator.geolocation });
+
+  // 3. Service Worker support
+  results.push({ test: "Service Worker support", pass: "serviceWorker" in navigator });
+
+  // 4. Camera API available
+  const hasCamera = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+  results.push({ test: "Camera API (getUserMedia)", pass: hasCamera, info: hasCamera ? "" : "File picker still works" });
+
+  // 5. File input capture support
+  const input = document.createElement("input");
+  input.type = "file";
+  const hasCapture = "capture" in input;
+  results.push({ test: "File input capture attribute", pass: hasCapture });
+
+  // 6. Fetch API
+  results.push({ test: "Fetch API", pass: typeof fetch === "function" });
+
+  // 7. FormData
+  results.push({ test: "FormData API", pass: typeof FormData === "function" });
+
+  // 8. FileReader
+  results.push({ test: "FileReader API", pass: typeof FileReader === "function" });
+
+  // 9. Verse mode in localStorage
+  const mode = localStorage.getItem("gg_verse_mode");
+  results.push({ test: "Verse mode saved", pass: true, info: mode ? `Current: ${mode}` : "Default (scripture)" });
+
+  // 10. User session
+  const user = localStorage.getItem("gg_user");
+  results.push({ test: "User session", pass: true, info: user ? `Logged in as: ${JSON.parse(user).name}` : "Not logged in" });
+
+  const el = document.getElementById("frontend-results");
+  el.innerHTML = results.map(r => `
+    <div class="test-row">
+      <div>
+        ${r.test}
+        ${r.info ? `<div class="info">${r.info}</div>` : ""}
+        ${r.error ? `<div class="error">${r.error}</div>` : ""}
+      </div>
+      <span class="badge ${r.pass ? 'pass' : 'fail'}">${r.pass ? 'PASS' : 'FAIL'}</span>
+    </div>
+  `).join("");
+}
+
+async function testEndpoint(path, method) {
+  const log = document.getElementById("endpoint-log");
+  log.style.display = "block";
+  log.textContent = `Testing ${method} ${path}...\n`;
+
+  try {
+    const opts = method === "GET" ? {} : {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    };
+    const res = await fetch(API + path, opts);
+    const data = await res.json();
+    log.textContent += `Status: ${res.status}\n`;
+    log.textContent += JSON.stringify(data, null, 2);
+  } catch (e) {
+    log.textContent += `ERROR: ${e.message}`;
+  }
+}
+
+async function testFishing() {
+  const log = document.getElementById("endpoint-log");
+  log.style.display = "block";
+  log.textContent = "Testing POST /features/fishing (Sacramento)...\n";
+
+  try {
+    const res = await fetch(API + "/features/fishing?verse_mode=scripture", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ lat: 38.5816, lon: -121.4944, location_name: "Sacramento, California" }),
+    });
+    const data = await res.json();
+    log.textContent += `Status: ${res.status}\n\n`;
+
+    if (data.result) {
+      const r = data.result;
+      log.textContent += `Outlook: ${r.outlook || "MISSING"}\n`;
+      log.textContent += `Conditions: ${typeof r.conditions === "string" ? "OK" : "WRONG TYPE: " + typeof r.conditions}\n`;
+
+      // Check species format
+      const sp = r.active_species || [];
+      log.textContent += `\nSpecies (${sp.length}):\n`;
+      sp.forEach((s, i) => {
+        if (typeof s === "string") {
+          log.textContent += `  [${i}] STRING: "${s}"\n`;
+        } else if (typeof s === "object") {
+          log.textContent += `  [${i}] OBJECT keys: ${Object.keys(s).join(", ")}\n`;
+          log.textContent += `       name="${s.name}" activity="${s.activity}" note="${s.note}"\n`;
+        } else {
+          log.textContent += `  [${i}] UNKNOWN TYPE: ${typeof s}\n`;
+        }
+      });
+
+      // Check bait format
+      const bt = r.bait_and_lures || r.recommended_bait || [];
+      log.textContent += `\nBait (${bt.length}):\n`;
+      bt.forEach((b, i) => {
+        if (typeof b === "string") {
+          log.textContent += `  [${i}] STRING: "${b}"\n`;
+        } else if (typeof b === "object") {
+          log.textContent += `  [${i}] OBJECT keys: ${Object.keys(b).join(", ")}\n`;
+          log.textContent += `       name="${b.name}" best_for="${b.best_for}" tip="${b.tip}"\n`;
+        }
+      });
+
+      // Check hot spots
+      const hs = r.hot_spots || [];
+      log.textContent += `\nHot spots (${hs.length}):\n`;
+      hs.forEach((h, i) => {
+        if (typeof h === "string") {
+          log.textContent += `  [${i}] STRING: "${h}"\n`;
+        } else if (typeof h === "object") {
+          log.textContent += `  [${i}] OBJECT keys: ${Object.keys(h).join(", ")}\n`;
+        }
+      });
+
+      log.textContent += `\nTides: ${r.tides_and_current ? "present" : "MISSING"}\n`;
+      log.textContent += `Verse: ${data.verse ? data.verse.verse.substring(0, 40) + "..." : "MISSING"}\n`;
+    } else {
+      log.textContent += "\nNo result object in response!\n";
+      log.textContent += JSON.stringify(data, null, 2);
+    }
+  } catch (e) {
+    log.textContent += `ERROR: ${e.message}`;
+  }
+}
+
+function testCamResult(input) {
+  const el = document.getElementById("cam-result");
+  if (input.files && input.files[0]) {
+    const file = input.files[0];
+    el.innerHTML = `
+      <div class="test-row">
+        <div>
+          File captured
+          <div class="info">${file.name} · ${file.type} · ${(file.size / 1024).toFixed(1)} KB</div>
+        </div>
+        <span class="badge pass">PASS</span>
+      </div>
+    `;
+    // Show preview
+    const reader = new FileReader();
+    reader.onload = e => {
+      el.innerHTML += `<img src="${e.target.result}" style="width:100%;max-height:150px;object-fit:cover;border-radius:8px;margin-top:8px;" />`;
+    };
+    reader.readAsDataURL(file);
+  } else {
+    el.innerHTML = '<div class="test-row"><span>No file selected</span><span class="badge fail">FAIL</span></div>';
+  }
+}
+</script>
+
+</body>
+</html>
