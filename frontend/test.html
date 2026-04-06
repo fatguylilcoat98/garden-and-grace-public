@@ -1,5 +1,5 @@
 <!--
-  Garden & Grace — Bug Tester
+  Garden & Grace — Test Suite
   The Good Neighbor Guard
 -->
 <!DOCTYPE html>
@@ -7,290 +7,122 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Garden & Grace — Bug Tester</title>
+  <title>Garden & Grace — Test Suite</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, system-ui, sans-serif; background: #1a1a2e; color: #e0e0e0; padding: 16px; min-height: 100vh; }
-    h1 { font-size: 1.4rem; text-align: center; margin-bottom: 4px; color: #fff; }
-    .sub { text-align: center; font-size: 0.85rem; color: #888; margin-bottom: 20px; }
-    .section { background: #16213e; border-radius: 12px; padding: 16px; margin-bottom: 16px; border: 1px solid #1a3a5c; }
-    .section-title { font-size: 0.9rem; font-weight: 700; color: #4ecca3; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.1em; }
-    .test-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #1a2a4a; font-size: 0.9rem; }
-    .test-row:last-child { border-bottom: none; }
-    .badge { padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 700; }
-    .pass { background: #0f5132; color: #4ecca3; }
-    .fail { background: #5c1a1a; color: #ff6b6b; }
-    .wait { background: #3a3a1a; color: #f0a500; }
-    .skip { background: #2a2a3a; color: #888; }
-    .info { font-size: 0.75rem; color: #666; margin-top: 2px; }
-    .error { font-size: 0.75rem; color: #ff6b6b; margin-top: 2px; }
-    .btn { display: block; width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 0.95rem; font-weight: 600; cursor: pointer; margin-bottom: 8px; }
-    .btn-run { background: #4ecca3; color: #1a1a2e; }
-    .btn-run:disabled { opacity: 0.5; }
-    .btn-feat { background: #1a3a5c; color: #4ecca3; border: 1px solid #4ecca3; }
-    .summary { text-align: center; font-size: 1.2rem; font-weight: 700; margin: 16px 0; }
-    .summary.good { color: #4ecca3; }
-    .summary.bad { color: #ff6b6b; }
-    .log { background: #0d1117; border-radius: 8px; padding: 12px; font-family: monospace; font-size: 0.75rem; color: #8b949e; max-height: 200px; overflow-y: auto; margin-top: 8px; white-space: pre-wrap; word-break: break-all; }
-    .feat-result { margin-top: 10px; }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:-apple-system,system-ui,sans-serif;background:#0d1117;color:#c9d1d9;padding:16px;min-height:100vh;}
+    .header{text-align:center;padding:20px 0 16px;border-bottom:1px solid #21262d;margin-bottom:20px;}
+    .header h1{font-size:1.3rem;color:#fff;margin-bottom:4px;}
+    .header .sub{font-size:0.85rem;color:#8b949e;}
+    .summary-bar{text-align:center;padding:16px;border-radius:10px;margin-bottom:20px;font-size:1.1rem;font-weight:700;}
+    .summary-bar.good{background:#0d1f0d;border:1px solid #238636;color:#3fb950;}
+    .summary-bar.bad{background:#1f0d0d;border:1px solid #da3633;color:#f85149;}
+    .summary-bar.running{background:#1a1a0d;border:1px solid #9e6a03;color:#d29922;}
+    .controls{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+    .btn{padding:10px 18px;border:none;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;}
+    .btn-primary{background:#238636;color:#fff;}
+    .btn-primary:disabled{opacity:0.5;}
+    .btn-secondary{background:#21262d;color:#c9d1d9;border:1px solid #30363d;}
+    .test-card{background:#161b22;border:1px solid #21262d;border-radius:10px;margin-bottom:8px;overflow:hidden;}
+    .test-row{display:flex;justify-content:space-between;align-items:flex-start;padding:12px 14px;cursor:pointer;}
+    .test-row:hover{background:#1c2128;}
+    .test-name{font-size:0.9rem;font-weight:500;}
+    .test-detail{display:none;padding:0 14px 12px;font-size:0.8rem;color:#8b949e;line-height:1.6;}
+    .test-detail.open{display:block;}
+    .badge{padding:3px 10px;border-radius:12px;font-size:0.7rem;font-weight:700;letter-spacing:0.04em;white-space:nowrap;}
+    .badge-pass{background:#0d1f0d;color:#3fb950;}
+    .badge-fail{background:#1f0d0d;color:#f85149;}
+    .badge-wait{background:#1a1a0d;color:#d29922;}
+    .notes{color:#8b949e;font-size:0.8rem;margin-top:4px;}
+    .error{color:#f85149;font-size:0.8rem;margin-top:4px;}
+    .section-label{font-size:0.75rem;font-weight:700;color:#8b949e;text-transform:uppercase;letter-spacing:0.12em;padding:12px 0 6px;}
+    .live-log{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:12px;font-family:monospace;font-size:0.75rem;color:#8b949e;max-height:300px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;margin-top:12px;display:none;}
   </style>
 </head>
 <body>
 
-<h1>🌿 Garden & Grace Bug Tester</h1>
-<div class="sub">Tap "Run All Tests" to check everything</div>
-
-<button class="btn btn-run" id="runAllBtn" onclick="runAll()">Run All Tests</button>
-
-<div class="summary" id="summary"></div>
-
-<!-- Backend Tests -->
-<div class="section" id="backend-section">
-  <div class="section-title">Backend Tests</div>
-  <div id="backend-results"><div class="test-row"><span>Waiting...</span><span class="badge wait">—</span></div></div>
+<div class="header">
+  <h1>🌿 Garden & Grace — Test Suite</h1>
+  <div class="sub">Real code. Real checks. Real results.</div>
 </div>
 
-<!-- Frontend Tests -->
-<div class="section" id="frontend-section">
-  <div class="section-title">Frontend Tests</div>
-  <div id="frontend-results"></div>
+<div class="summary-bar running" id="summary">Waiting to run...</div>
+
+<div class="controls">
+  <button class="btn btn-primary" id="runBtn" onclick="runTests(false)">Run Tests</button>
+  <button class="btn btn-secondary" onclick="runTests(true)">Run + Live Fishing Test</button>
 </div>
 
-<!-- Feature Endpoint Tests -->
-<div class="section">
-  <div class="section-title">Feature Endpoints</div>
-  <button class="btn btn-feat" onclick="testEndpoint('/features/daily-verse', 'GET')">Test Daily Verse</button>
-  <button class="btn btn-feat" onclick="testEndpoint('/features/daily-verse?verse_mode=jokes', 'GET')">Test Jokes Mode</button>
-  <button class="btn btn-feat" onclick="testEndpoint('/features/daily-verse?verse_mode=sayings', 'GET')">Test Sayings Mode</button>
-  <button class="btn btn-feat" onclick="testEndpoint('/features/catches?limit=5', 'GET')">Test Get Catches</button>
-  <button class="btn btn-feat" onclick="testEndpoint('/usage', 'GET')">Test Usage Counter</button>
-  <button class="btn btn-feat" onclick="testFishing()">Test Fishing Report (live API call)</button>
-  <div id="endpoint-log" class="log" style="display:none;"></div>
-</div>
+<div id="results"></div>
 
-<!-- Camera Test -->
-<div class="section">
-  <div class="section-title">Camera / Photo Test</div>
-  <input type="file" id="cam-test" accept="image/*" capture="environment" style="display:none;" onchange="testCamResult(this)" />
-  <button class="btn btn-feat" onclick="document.getElementById('cam-test').click()">Test Camera</button>
-  <input type="file" id="file-test" accept="image/*" style="display:none;" onchange="testCamResult(this)" />
-  <button class="btn btn-feat" onclick="document.getElementById('file-test').click()">Test File Picker</button>
-  <div id="cam-result" style="margin-top:8px;"></div>
+<div class="section-label" style="margin-top:20px;">Live Endpoint Inspector</div>
+<div class="controls">
+  <button class="btn btn-secondary" onclick="liveTest('/features/daily-verse?verse_mode=scripture')">Verse: Scripture</button>
+  <button class="btn btn-secondary" onclick="liveTest('/features/daily-verse?verse_mode=sayings')">Verse: Sayings</button>
+  <button class="btn btn-secondary" onclick="liveTest('/features/daily-verse?verse_mode=jokes')">Verse: Jokes</button>
+  <button class="btn btn-secondary" onclick="liveTest('/features/catches?limit=3')">Recent Catches</button>
+  <button class="btn btn-secondary" onclick="liveTest('/usage')">Usage</button>
+  <button class="btn btn-secondary" onclick="liveTest('/health')">Health</button>
 </div>
+<div class="live-log" id="liveLog"></div>
 
 <script>
-const API = "";
+async function runTests(live) {
+  const btn = document.getElementById("runBtn");
+  const summary = document.getElementById("summary");
+  const container = document.getElementById("results");
 
-async function runAll() {
-  const btn = document.getElementById("runAllBtn");
   btn.disabled = true;
-  btn.textContent = "Running...";
+  summary.textContent = "Running tests...";
+  summary.className = "summary-bar running";
+  container.innerHTML = "";
 
-  // Backend tests
-  await runBackend();
-  // Frontend tests
-  runFrontend();
-
-  btn.disabled = false;
-  btn.textContent = "Run All Tests";
-}
-
-async function runBackend() {
-  const el = document.getElementById("backend-results");
-  el.innerHTML = '<div class="test-row"><span>Running...</span><span class="badge wait">...</span></div>';
+  const url = "/test/api" + (live ? "?live=true" : "");
 
   try {
-    const res = await fetch(API + "/test/api");
+    const res = await fetch(url);
     const data = await res.json();
 
-    el.innerHTML = data.results.map(r => `
-      <div class="test-row">
-        <div>
-          ${r.test}
-          ${r.info ? `<div class="info">${r.info}</div>` : ""}
-          ${r.error ? `<div class="error">${r.error}</div>` : ""}
+    summary.textContent = data.summary + (data.all_pass ? " — All clear" : " — Issues found");
+    summary.className = "summary-bar " + (data.all_pass ? "good" : "bad");
+
+    container.innerHTML = data.results.map((r, i) => `
+      <div class="test-card">
+        <div class="test-row" onclick="this.nextElementSibling.classList.toggle('open')">
+          <div>
+            <div class="test-name">${r.test}</div>
+            ${r.notes ? `<div class="notes">${r.notes}</div>` : ""}
+            ${r.error ? `<div class="error">${r.error}</div>` : ""}
+          </div>
+          <span class="badge ${r.passed ? 'badge-pass' : 'badge-fail'}">${r.passed ? 'PASS' : 'FAIL'}</span>
         </div>
-        <span class="badge ${r.pass ? 'pass' : 'fail'}">${r.pass ? 'PASS' : 'FAIL'}</span>
+        <div class="test-detail">
+          <pre>${JSON.stringify(r, null, 2)}</pre>
+        </div>
       </div>
     `).join("");
 
-    const sum = document.getElementById("summary");
-    sum.textContent = data.summary + (data.all_pass ? " — All clear!" : " — Issues found");
-    sum.className = "summary " + (data.all_pass ? "good" : "bad");
-
   } catch (e) {
-    el.innerHTML = `<div class="test-row"><div>Backend unreachable<div class="error">${e.message}</div></div><span class="badge fail">FAIL</span></div>`;
-    document.getElementById("summary").textContent = "Backend unreachable";
-    document.getElementById("summary").className = "summary bad";
-  }
-}
-
-function runFrontend() {
-  const results = [];
-
-  // 1. localStorage works
-  try {
-    localStorage.setItem("_gg_test", "1");
-    localStorage.removeItem("_gg_test");
-    results.push({ test: "localStorage", pass: true });
-  } catch {
-    results.push({ test: "localStorage", pass: false, error: "Not available" });
+    summary.textContent = "Could not reach test API";
+    summary.className = "summary-bar bad";
+    container.innerHTML = `<div class="test-card"><div class="test-row"><div><div class="test-name">Backend unreachable</div><div class="error">${e.message}</div></div><span class="badge badge-fail">FAIL</span></div></div>`;
   }
 
-  // 2. Geolocation available
-  results.push({ test: "Geolocation API", pass: !!navigator.geolocation });
-
-  // 3. Service Worker support
-  results.push({ test: "Service Worker support", pass: "serviceWorker" in navigator });
-
-  // 4. Camera API available
-  const hasCamera = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
-  results.push({ test: "Camera API (getUserMedia)", pass: hasCamera, info: hasCamera ? "" : "File picker still works" });
-
-  // 5. File input capture support
-  const input = document.createElement("input");
-  input.type = "file";
-  const hasCapture = "capture" in input;
-  results.push({ test: "File input capture attribute", pass: hasCapture });
-
-  // 6. Fetch API
-  results.push({ test: "Fetch API", pass: typeof fetch === "function" });
-
-  // 7. FormData
-  results.push({ test: "FormData API", pass: typeof FormData === "function" });
-
-  // 8. FileReader
-  results.push({ test: "FileReader API", pass: typeof FileReader === "function" });
-
-  // 9. Verse mode in localStorage
-  const mode = localStorage.getItem("gg_verse_mode");
-  results.push({ test: "Verse mode saved", pass: true, info: mode ? `Current: ${mode}` : "Default (scripture)" });
-
-  // 10. User session
-  const user = localStorage.getItem("gg_user");
-  results.push({ test: "User session", pass: true, info: user ? `Logged in as: ${JSON.parse(user).name}` : "Not logged in" });
-
-  const el = document.getElementById("frontend-results");
-  el.innerHTML = results.map(r => `
-    <div class="test-row">
-      <div>
-        ${r.test}
-        ${r.info ? `<div class="info">${r.info}</div>` : ""}
-        ${r.error ? `<div class="error">${r.error}</div>` : ""}
-      </div>
-      <span class="badge ${r.pass ? 'pass' : 'fail'}">${r.pass ? 'PASS' : 'FAIL'}</span>
-    </div>
-  `).join("");
+  btn.disabled = false;
 }
 
-async function testEndpoint(path, method) {
-  const log = document.getElementById("endpoint-log");
+async function liveTest(path) {
+  const log = document.getElementById("liveLog");
   log.style.display = "block";
-  log.textContent = `Testing ${method} ${path}...\n`;
+  log.textContent = "GET " + path + "\n\n";
 
   try {
-    const opts = method === "GET" ? {} : {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: "{}",
-    };
-    const res = await fetch(API + path, opts);
+    const res = await fetch(path);
+    log.textContent += "Status: " + res.status + "\n\n";
     const data = await res.json();
-    log.textContent += `Status: ${res.status}\n`;
     log.textContent += JSON.stringify(data, null, 2);
   } catch (e) {
-    log.textContent += `ERROR: ${e.message}`;
-  }
-}
-
-async function testFishing() {
-  const log = document.getElementById("endpoint-log");
-  log.style.display = "block";
-  log.textContent = "Testing POST /features/fishing (Sacramento)...\n";
-
-  try {
-    const res = await fetch(API + "/features/fishing?verse_mode=scripture", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ lat: 38.5816, lon: -121.4944, location_name: "Sacramento, California" }),
-    });
-    const data = await res.json();
-    log.textContent += `Status: ${res.status}\n\n`;
-
-    if (data.result) {
-      const r = data.result;
-      log.textContent += `Outlook: ${r.outlook || "MISSING"}\n`;
-      log.textContent += `Conditions: ${typeof r.conditions === "string" ? "OK" : "WRONG TYPE: " + typeof r.conditions}\n`;
-
-      // Check species format
-      const sp = r.active_species || [];
-      log.textContent += `\nSpecies (${sp.length}):\n`;
-      sp.forEach((s, i) => {
-        if (typeof s === "string") {
-          log.textContent += `  [${i}] STRING: "${s}"\n`;
-        } else if (typeof s === "object") {
-          log.textContent += `  [${i}] OBJECT keys: ${Object.keys(s).join(", ")}\n`;
-          log.textContent += `       name="${s.name}" activity="${s.activity}" note="${s.note}"\n`;
-        } else {
-          log.textContent += `  [${i}] UNKNOWN TYPE: ${typeof s}\n`;
-        }
-      });
-
-      // Check bait format
-      const bt = r.bait_and_lures || r.recommended_bait || [];
-      log.textContent += `\nBait (${bt.length}):\n`;
-      bt.forEach((b, i) => {
-        if (typeof b === "string") {
-          log.textContent += `  [${i}] STRING: "${b}"\n`;
-        } else if (typeof b === "object") {
-          log.textContent += `  [${i}] OBJECT keys: ${Object.keys(b).join(", ")}\n`;
-          log.textContent += `       name="${b.name}" best_for="${b.best_for}" tip="${b.tip}"\n`;
-        }
-      });
-
-      // Check hot spots
-      const hs = r.hot_spots || [];
-      log.textContent += `\nHot spots (${hs.length}):\n`;
-      hs.forEach((h, i) => {
-        if (typeof h === "string") {
-          log.textContent += `  [${i}] STRING: "${h}"\n`;
-        } else if (typeof h === "object") {
-          log.textContent += `  [${i}] OBJECT keys: ${Object.keys(h).join(", ")}\n`;
-        }
-      });
-
-      log.textContent += `\nTides: ${r.tides_and_current ? "present" : "MISSING"}\n`;
-      log.textContent += `Verse: ${data.verse ? data.verse.verse.substring(0, 40) + "..." : "MISSING"}\n`;
-    } else {
-      log.textContent += "\nNo result object in response!\n";
-      log.textContent += JSON.stringify(data, null, 2);
-    }
-  } catch (e) {
-    log.textContent += `ERROR: ${e.message}`;
-  }
-}
-
-function testCamResult(input) {
-  const el = document.getElementById("cam-result");
-  if (input.files && input.files[0]) {
-    const file = input.files[0];
-    el.innerHTML = `
-      <div class="test-row">
-        <div>
-          File captured
-          <div class="info">${file.name} · ${file.type} · ${(file.size / 1024).toFixed(1)} KB</div>
-        </div>
-        <span class="badge pass">PASS</span>
-      </div>
-    `;
-    // Show preview
-    const reader = new FileReader();
-    reader.onload = e => {
-      el.innerHTML += `<img src="${e.target.result}" style="width:100%;max-height:150px;object-fit:cover;border-radius:8px;margin-top:8px;" />`;
-    };
-    reader.readAsDataURL(file);
-  } else {
-    el.innerHTML = '<div class="test-row"><span>No file selected</span><span class="badge fail">FAIL</span></div>';
+    log.textContent += "ERROR: " + e.message;
   }
 }
 </script>

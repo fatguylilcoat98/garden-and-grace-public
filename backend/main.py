@@ -114,70 +114,24 @@ def usage_info(request: Request):
 # ── BUG TESTER ───────────────────────────────────────────────────────────────
 
 @app.get("/test/api")
-def test_api():
-    """Run backend health checks and return results."""
-    results = []
+def test_api(live: bool = False):
+    """Run the full test suite. Add ?live=true to include the fishing API call."""
+    from .tests.test_suite import run_all_tests
+    results = run_all_tests()
 
-    # 1. App running
-    results.append({"test": "App running", "pass": True})
+    # Skip the expensive fishing API test unless ?live=true
+    if not live:
+        results = [r for r in results if "Fishing: Response" not in r.get("test", "")]
 
-    # 2. Anthropic key set
-    import anthropic
-    key = os.environ.get("ANTHROPIC_API_KEY", "")
-    results.append({"test": "ANTHROPIC_API_KEY set", "pass": bool(key and len(key) > 10)})
-
-    # 3. SendGrid key set
-    sg_key = os.environ.get("SENDGRID_API_KEY", "")
-    results.append({"test": "SENDGRID_API_KEY set", "pass": bool(sg_key and len(sg_key) > 10)})
-
-    # 4. Database connection
-    try:
-        from .db import get_db, query_one
-        with get_db() as conn:
-            query_one(conn, "SELECT 1 AS ok")
-        results.append({"test": "Database connection", "pass": True})
-    except Exception as e:
-        results.append({"test": "Database connection", "pass": False, "error": str(e)[:200]})
-
-    # 5. Catches table exists
-    try:
-        from .db import get_db, query_all
-        with get_db() as conn:
-            query_all(conn, "SELECT COUNT(*) FROM catches")
-        results.append({"test": "Catches table exists", "pass": True})
-    except Exception as e:
-        results.append({"test": "Catches table exists", "pass": False, "error": str(e)[:200]})
-
-    # 6. KJV service works (all modes)
-    try:
-        from .services.kjv_service import get_verse, get_daily_verse
-        for mode in ["scripture", "sayings", "jokes"]:
-            v = get_verse("fishing", mode)
-            assert v and v.get("verse"), f"{mode} returned empty"
-        dv = get_daily_verse("scripture")
-        assert dv and dv.get("verse")
-        results.append({"test": "Verse service (all modes)", "pass": True})
-    except Exception as e:
-        results.append({"test": "Verse service (all modes)", "pass": False, "error": str(e)[:200]})
-
-    # 7. Claude service importable
-    try:
-        from .services import claude_service
-        assert hasattr(claude_service, "identify_plant")
-        assert hasattr(claude_service, "get_fishing_report")
-        assert hasattr(claude_service, "identify_catch_and_recipe")
-        results.append({"test": "Claude service functions exist", "pass": True})
-    except Exception as e:
-        results.append({"test": "Claude service functions exist", "pass": False, "error": str(e)[:200]})
-
-    # 8. Rate limiter working
-    results.append({"test": "Rate limiter loaded", "pass": COOLDOWN_SECONDS > 0 and DAILY_LIMIT_FREE > 0,
-                     "info": f"Cooldown: {COOLDOWN_SECONDS}s, Daily: {DAILY_LIMIT_FREE}"})
-
-    passed = sum(1 for r in results if r["pass"])
+    passed = sum(1 for r in results if r.get("passed"))
+    failed = len(results) - passed
     return {
-        "summary": f"{passed}/{len(results)} passed",
-        "all_pass": passed == len(results),
+        "service": "Garden & Grace Public",
+        "summary": f"{passed} passed / {failed} failed",
+        "all_pass": failed == 0,
+        "total": len(results),
+        "passed": passed,
+        "failed": failed,
         "results": results,
     }
 
