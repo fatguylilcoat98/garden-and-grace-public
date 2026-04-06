@@ -1,0 +1,320 @@
+<!--
+  Garden & Grace — Public Edition
+  The Good Neighbor Guard
+  Built by Christopher Hughes · Sacramento, CA
+  Created with the help of AI collaborators (Claude · GPT · Gemini · Groq)
+  Truth · Safety · We Got Your Back
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#3d6b3f" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Garden & Grace" />
+  <meta name="description" content="Garden & Grace — gardening, birds, fishing, recipes, and building. By The Good Neighbor Guard." />
+  <title>Garden &amp; Grace</title>
+  <link rel="manifest" href="/static/manifest.json" />
+  <link rel="apple-touch-icon" href="/static/icons/icon-192.png" />
+  <link rel="stylesheet" href="/static/css/app.css" />
+</head>
+<body>
+
+<div class="app-shell">
+
+  <!-- ══════════════════════════════════════════
+       AUTH SCREEN
+  ══════════════════════════════════════════ -->
+  <div id="screen-auth" class="screen active" style="min-height:100vh;">
+    <div class="auth-screen" style="flex:1;">
+      <div class="auth-logo">🌿 Garden &amp; Grace</div>
+      <div class="auth-tagline">Warmth, wisdom, and wonder — right from your backyard</div>
+
+      <div class="auth-card" id="auth-card-form">
+        <h2 id="auth-heading">Welcome to Garden &amp; Grace</h2>
+        <form id="auth-form">
+          <div class="field-group">
+            <label for="auth-name">Your First Name</label>
+            <input type="text" id="auth-name" placeholder="Enter your name…" autocomplete="given-name" />
+          </div>
+          <button type="submit" id="auth-submit-btn" class="btn-primary">
+            Enter Garden &amp; Grace 🌿
+          </button>
+        </form>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       HOME SCREEN
+  ══════════════════════════════════════════ -->
+  <div id="screen-home" class="screen">
+
+    <div class="home-header">
+      <div class="home-greeting" id="home-greeting">Good morning 🌿</div>
+      <div class="home-date" id="home-date"></div>
+      <div class="daily-verse-card">
+        <div class="daily-verse-text" id="daily-verse-text">"This is the day which the LORD hath made; we will rejoice and be glad in it."</div>
+        <div class="daily-verse-ref" id="daily-verse-ref">— Psalm 118:24</div>
+      </div>
+    </div>
+
+    <div class="feature-grid">
+
+      <button class="feature-btn garden" onclick="initGarden()">
+        <div class="feature-icon">🌿</div>
+        <div>
+          <span class="feature-label">Garden</span>
+          <span class="feature-desc">Take a photo — learn about any plant</span>
+        </div>
+      </button>
+
+      <button class="feature-btn birds" onclick="initBirds()">
+        <div class="feature-icon">🦅</div>
+        <div>
+          <span class="feature-label">Birds &amp; Wildlife</span>
+          <span class="feature-desc">Identify any bird or creature</span>
+        </div>
+      </button>
+
+      <button class="feature-btn fishing" onclick="initFishing()">
+        <div class="feature-icon">🎣</div>
+        <div>
+          <span class="feature-label">Fishing</span>
+          <span class="feature-desc">Today's conditions at your location</span>
+        </div>
+      </button>
+
+      <button class="feature-btn recipe" onclick="initRecipe()">
+        <div class="feature-icon">🍽️</div>
+        <div>
+          <span class="feature-label">Recipe Builder</span>
+          <span class="feature-desc">Photo any meal — get the full recipe</span>
+        </div>
+      </button>
+
+      <button class="feature-btn build" onclick="initBuild()">
+        <div class="feature-icon">🔨</div>
+        <div>
+          <span class="feature-label">Build It</span>
+          <span class="feature-desc">Photo anything — get a build plan</span>
+        </div>
+      </button>
+
+    </div>
+
+    <div id="usage-counter" style="display:none; text-align:center; padding:4px 16px 8px; color:var(--brown-lt); font-size:0.8rem; opacity:0.7;"></div>
+
+    <div style="text-align:center; padding:8px 16px 24px; color:var(--brown-lt); font-size:0.85rem; font-family:var(--font-display); font-style:italic;">
+      Made with love by The Good Neighbor Guard 🌿
+    </div>
+
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       GARDEN SCREEN
+  ══════════════════════════════════════════ -->
+  <div id="screen-garden" class="screen">
+    <div class="top-bar">
+      <button class="back-btn" onclick="goHome()">←</button>
+      <div class="top-bar-title">🌿 Garden</div>
+      <div style="width:40px;"></div>
+    </div>
+
+    <div id="garden-loading" class="loading-overlay">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">Identifying your plant…</div>
+    </div>
+
+    <div id="garden-content" class="feature-content">
+      <div id="garden-upload-area" class="photo-upload-area">
+        <div class="upload-icon">📸</div>
+        <div class="upload-text">Take or upload a photo</div>
+        <div class="upload-subtext">Any plant, flower, vegetable, or garden bed</div>
+      </div>
+      <input type="file" id="garden-input" accept="image/*" style="display:none;" />
+      <img id="garden-preview" class="photo-preview" alt="Plant photo" />
+
+      <button id="garden-analyze-btn" class="btn-primary" style="display:none;" onclick="analyzeGarden()">
+        🌿 Identify This Plant
+      </button>
+
+      <div class="result-card" id="garden-result"></div>
+      <div class="verse-banner" id="garden-verse"></div>
+
+      <button class="btn-secondary" onclick="resetGarden()" style="display:none;" id="garden-reset-btn">
+        📸 Try Another Photo
+      </button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       BIRDS & WILDLIFE SCREEN
+  ══════════════════════════════════════════ -->
+  <div id="screen-birds" class="screen">
+    <div class="top-bar">
+      <button class="back-btn" onclick="goHome()">←</button>
+      <div class="top-bar-title">🦅 Birds &amp; Wildlife</div>
+      <div style="width:40px;"></div>
+    </div>
+
+    <div id="birds-loading" class="loading-overlay">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">Identifying this creature…</div>
+    </div>
+
+    <div id="birds-content" class="feature-content">
+      <div id="birds-upload-area" class="photo-upload-area">
+        <div class="upload-icon">📸</div>
+        <div class="upload-text">Take or upload a photo</div>
+        <div class="upload-subtext">Any bird, animal, or creature — Bald Eagles welcome! 🦅</div>
+      </div>
+      <input type="file" id="birds-input" accept="image/*" style="display:none;" />
+      <img id="birds-preview" class="photo-preview" alt="Wildlife photo" />
+
+      <button id="birds-analyze-btn" class="btn-primary" style="display:none;" onclick="analyzeBirds()">
+        🦅 Identify This Creature
+      </button>
+
+      <div class="result-card" id="birds-result"></div>
+      <div class="verse-banner" id="birds-verse"></div>
+
+      <button class="btn-secondary" onclick="resetBirds()" id="birds-reset-btn" style="display:none;">
+        📸 Try Another Photo
+      </button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       FISHING SCREEN
+  ══════════════════════════════════════════ -->
+  <div id="screen-fishing" class="screen">
+    <div class="top-bar">
+      <button class="back-btn" onclick="goHome()">←</button>
+      <div class="top-bar-title">🎣 Fishing</div>
+      <div style="width:40px;"></div>
+    </div>
+
+    <div id="fishing-loading" class="loading-overlay">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">Checking fishing conditions…</div>
+    </div>
+
+    <div id="fishing-content" class="feature-content">
+      <div style="background:var(--white); border-radius:var(--radius); padding:20px; box-shadow:var(--shadow); margin-bottom:16px; text-align:center;">
+        <div style="font-size:2.5rem; margin-bottom:10px;">🎣</div>
+        <p style="font-family:var(--font-display); font-size:1.1rem; color:var(--text); line-height:1.6; margin-bottom:4px;">
+          Get today's fishing report for your exact location.
+        </p>
+        <p style="font-size:0.9rem; color:var(--text-soft);">Best conditions, active fish, recommended bait — all for right now.</p>
+      </div>
+
+      <button id="fishing-get-btn" class="btn-primary" onclick="getFishingReport()">
+        🎣 Get Today's Report
+      </button>
+
+      <div class="result-card" id="fishing-result"></div>
+      <div class="verse-banner" id="fishing-verse"></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       RECIPE SCREEN
+  ══════════════════════════════════════════ -->
+  <div id="screen-recipe" class="screen">
+    <div class="top-bar">
+      <button class="back-btn" onclick="goHome()">←</button>
+      <div class="top-bar-title">🍽️ Recipe Builder</div>
+      <div style="width:40px;"></div>
+    </div>
+
+    <div id="recipe-loading" class="loading-overlay">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">Building your recipe…</div>
+    </div>
+
+    <div id="recipe-content" class="feature-content">
+      <div id="recipe-upload-area" class="photo-upload-area">
+        <div class="upload-icon">📸</div>
+        <div class="upload-text">Take or upload a photo</div>
+        <div class="upload-subtext">Any meal — on TV, at a restaurant, anywhere</div>
+      </div>
+      <input type="file" id="recipe-input" accept="image/*" style="display:none;" />
+      <img id="recipe-preview" class="photo-preview" alt="Food photo" />
+
+      <button id="recipe-analyze-btn" class="btn-primary" style="display:none;" onclick="analyzeRecipe()">
+        🍽️ Build This Recipe
+      </button>
+
+      <div class="result-card" id="recipe-result"></div>
+      <div class="verse-banner" id="recipe-verse"></div>
+
+      <button id="recipe-email-btn" class="btn-gold" style="display:none;" onclick="emailRecipePdf()">
+        📧 Send Recipe to My Email
+      </button>
+
+      <button class="btn-secondary" onclick="resetRecipe()" style="margin-top:10px;">
+        📸 Try Another Photo
+      </button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       BUILD IT SCREEN
+  ══════════════════════════════════════════ -->
+  <div id="screen-build" class="screen">
+    <div class="top-bar">
+      <button class="back-btn" onclick="goHome()">←</button>
+      <div class="top-bar-title">🔨 Build It</div>
+      <div style="width:40px;"></div>
+    </div>
+
+    <div id="build-loading" class="loading-overlay">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">Building your plan…</div>
+    </div>
+
+    <div id="build-content" class="feature-content">
+      <div id="build-upload-area" class="photo-upload-area">
+        <div class="upload-icon">📸</div>
+        <div class="upload-text">Take or upload a photo</div>
+        <div class="upload-subtext">Any structure — gazebo, birdhouse, shelves, garden bed…</div>
+      </div>
+      <input type="file" id="build-input" accept="image/*" style="display:none;" />
+      <img id="build-preview" class="photo-preview" alt="Structure photo" />
+
+      <button id="build-analyze-btn" class="btn-primary" style="display:none;" onclick="analyzeBuild()">
+        🔨 Create Build Plan
+      </button>
+
+      <div class="result-card" id="build-result"></div>
+      <div class="verse-banner" id="build-verse"></div>
+
+      <button id="build-email-btn" class="btn-gold" style="display:none;" onclick="emailBuildPdf()">
+        📧 Send Build Plan to My Email
+      </button>
+
+      <button class="btn-secondary" onclick="resetBuild()" style="margin-top:10px;">
+        📸 Try Another Photo
+      </button>
+    </div>
+  </div>
+
+</div><!-- end app-shell -->
+
+<!-- Toast notification -->
+<div id="toast" class="toast"></div>
+
+<script src="/static/js/app.js"></script>
+<script src="/static/js/auth.js"></script>
+<script src="/static/js/garden.js"></script>
+<script src="/static/js/birds.js"></script>
+<script src="/static/js/fishing.js"></script>
+<script src="/static/js/recipes.js"></script>
+<script src="/static/js/build.js"></script>
+
+</body>
+</html>

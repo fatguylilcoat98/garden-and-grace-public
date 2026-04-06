@@ -1,0 +1,36 @@
+# Garden & Grace — Public Edition
+# The Good Neighbor Guard
+# Built by Christopher Hughes · Sacramento, CA
+# Truth · Safety · We Got Your Back
+#
+# PUBLIC VERSION — separate from family build.
+
+services:
+  - type: web
+    name: garden-and-grace-public
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: gunicorn backend.main:app --worker-class uvicorn.workers.UvicornWorker --timeout 120 --workers 1 --preload
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: SENDGRID_API_KEY
+        sync: false
+      - key: FROM_EMAIL
+        sync: false
+      - key: APP_URL
+        sync: false
+      - key: ENV
+        value: production
+      - key: DB_PATH
+        value: /var/data/garden_grace_public.db
+      - key: GG_COOLDOWN_SECONDS
+        value: "20"
+      - key: GG_DAILY_LIMIT
+        value: "8"
+    disk:
+      name: garden-grace-public-data
+      mountPath: /var/data
+      sizeGB: 1
