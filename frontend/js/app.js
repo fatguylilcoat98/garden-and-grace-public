@@ -8,6 +8,44 @@
 
 const API = "";  // Same origin
 
+// ── Verse Mode (scripture / sayings / jokes / off) ───────────
+function getVerseMode() {
+  return localStorage.getItem("gg_verse_mode") || "scripture";
+}
+
+function setVerseMode(mode) {
+  localStorage.setItem("gg_verse_mode", mode);
+  updateVerseModeUI();
+  // Reload daily verse with new mode
+  apiGet("/features/daily-verse?verse_mode=" + mode).then(verse => {
+    const vt = document.getElementById("daily-verse-text");
+    const vr = document.getElementById("daily-verse-ref");
+    if (vt && vr) {
+      if (verse.verse) {
+        vt.textContent = `"${verse.verse}"`;
+        vr.textContent = `— ${verse.ref}`;
+        vt.parentElement.style.display = "";
+      } else {
+        vt.parentElement.style.display = "none";
+      }
+    }
+  }).catch(() => {});
+}
+
+function updateVerseModeUI() {
+  const mode = getVerseMode();
+  document.querySelectorAll(".verse-mode-btn").forEach(btn => {
+    const isActive = btn.dataset.mode === mode;
+    btn.style.background = isActive ? "var(--green, #3d6b3f)" : "var(--white, #fff)";
+    btn.style.color = isActive ? "#fff" : "var(--text-soft)";
+    btn.style.borderColor = isActive ? "var(--green, #3d6b3f)" : "var(--cream-dk)";
+  });
+}
+
+function verseParam() {
+  return "verse_mode=" + getVerseMode();
+}
+
 // ── State ────────────────────────────────────────────────────────
 const state = {
   user: null,
@@ -69,7 +107,9 @@ async function apiPost(path, data, isFormData = false) {
   if (state.sessionToken) headers["Authorization"] = `Bearer ${state.sessionToken}`;
   if (!isFormData) headers["Content-Type"] = "application/json";
 
-  const response = await fetch(API + path, {
+  const sep = path.includes("?") ? "&" : "?";
+  const url = API + path + sep + verseParam();
+  const response = await fetch(url, {
     method: "POST",
     headers,
     body: isFormData ? data : JSON.stringify(data),
@@ -240,12 +280,23 @@ function initHome() {
   document.getElementById("home-greeting").textContent = `${getGreeting()}, ${name} 🌿`;
   document.getElementById("home-date").textContent = formatDate();
 
-  // Load daily verse
-  apiGet("/features/daily-verse").then(verse => {
-    document.getElementById("daily-verse-text").textContent = `"${verse.verse}"`;
-    document.getElementById("daily-verse-ref").textContent = `— ${verse.ref}`;
+  // Load daily verse with current mode
+  const mode = getVerseMode();
+  apiGet("/features/daily-verse?verse_mode=" + mode).then(verse => {
+    const vt = document.getElementById("daily-verse-text");
+    const vr = document.getElementById("daily-verse-ref");
+    if (verse.verse) {
+      vt.textContent = `"${verse.verse}"`;
+      vr.textContent = `— ${verse.ref}`;
+      vt.parentElement.style.display = "";
+    } else {
+      vt.parentElement.style.display = "none";
+    }
   }).catch(() => {});
 
   // Show usage counter
   updateUsageDisplay();
+
+  // Set verse mode toggle active state
+  updateVerseModeUI();
 }

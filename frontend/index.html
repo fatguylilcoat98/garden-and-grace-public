@@ -60,6 +60,14 @@
         <div class="daily-verse-text" id="daily-verse-text">"This is the day which the LORD hath made; we will rejoice and be glad in it."</div>
         <div class="daily-verse-ref" id="daily-verse-ref">— Psalm 118:24</div>
       </div>
+
+      <!-- Closing words mode toggle -->
+      <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:12px;">
+        <button class="verse-mode-btn" data-mode="scripture" onclick="setVerseMode('scripture')" style="padding:6px 14px;border-radius:20px;border:1px solid var(--cream-dk);background:var(--white);font-size:0.8rem;color:var(--text-soft);cursor:pointer;">📖 Scripture</button>
+        <button class="verse-mode-btn" data-mode="sayings" onclick="setVerseMode('sayings')" style="padding:6px 14px;border-radius:20px;border:1px solid var(--cream-dk);background:var(--white);font-size:0.8rem;color:var(--text-soft);cursor:pointer;">✨ Sayings</button>
+        <button class="verse-mode-btn" data-mode="jokes" onclick="setVerseMode('jokes')" style="padding:6px 14px;border-radius:20px;border:1px solid var(--cream-dk);background:var(--white);font-size:0.8rem;color:var(--text-soft);cursor:pointer;">😄 Jokes</button>
+        <button class="verse-mode-btn" data-mode="off" onclick="setVerseMode('off')" style="padding:6px 14px;border-radius:20px;border:1px solid var(--cream-dk);background:var(--white);font-size:0.8rem;color:var(--text-soft);cursor:pointer;">Off</button>
+      </div>
     </div>
 
     <div class="feature-grid">

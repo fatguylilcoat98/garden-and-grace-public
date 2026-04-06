@@ -8,7 +8,7 @@ Truth · Safety · We Got Your Back
 PUBLIC VERSION — no hardcoded family data.
 """
 
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File, HTTPException, Request
 from pydantic import BaseModel
 from typing import Optional
 
@@ -17,28 +17,36 @@ from ..services.kjv_service import get_verse, get_daily_verse
 
 router = APIRouter(prefix="/features", tags=["features"])
 
+VALID_MODES = {"scripture", "sayings", "jokes", "off"}
+
+def _verse_mode(request: Request) -> str:
+    mode = (request.query_params.get("verse_mode") or "scripture").lower()
+    return mode if mode in VALID_MODES else "scripture"
+
 # ── GARDEN ────────────────────────────────────────────────────────────────────
 
 @router.post("/garden")
-async def garden_identify(image: UploadFile = File(...)):
+async def garden_identify(request: Request, image: UploadFile = File(...)):
     image_bytes = await image.read()
     media_type = image.content_type or "image/jpeg"
     result = claude_service.identify_plant(image_bytes, media_type)
     if "error" in result:
         raise HTTPException(status_code=500, detail="Could not identify this plant. Please try a clearer photo.")
-    verse = get_verse("garden")
+    mode = _verse_mode(request)
+    verse = get_verse("garden", mode) if mode != "off" else None
     return {"result": result, "verse": verse}
 
 # ── BIRDS & WILDLIFE ──────────────────────────────────────────────────────────
 
 @router.post("/birds")
-async def birds_identify(image: UploadFile = File(...)):
+async def birds_identify(request: Request, image: UploadFile = File(...)):
     image_bytes = await image.read()
     media_type = image.content_type or "image/jpeg"
     result = claude_service.identify_bird_or_wildlife(image_bytes, media_type)
     if "error" in result:
         raise HTTPException(status_code=500, detail="Could not identify this creature. Please try a clearer photo.")
-    verse = get_verse("birds")
+    mode = _verse_mode(request)
+    verse = get_verse("birds", mode) if mode != "off" else None
     return {"result": result, "verse": verse}
 
 # ── FISHING ───────────────────────────────────────────────────────────────────
@@ -49,23 +57,25 @@ class FishingRequest(BaseModel):
     location_name: Optional[str] = ""
 
 @router.post("/fishing")
-async def fishing_report(req: FishingRequest):
+async def fishing_report(request: Request, req: FishingRequest):
     result = claude_service.get_fishing_report(req.lat, req.lon, req.location_name)
     if "error" in result:
         raise HTTPException(status_code=500, detail="Could not get fishing report. Please try again.")
-    verse = get_verse("fishing")
+    mode = _verse_mode(request)
+    verse = get_verse("fishing", mode) if mode != "off" else None
     return {"result": result, "verse": verse}
 
 # ── RECIPE BUILDER ────────────────────────────────────────────────────────────
 
 @router.post("/recipe")
-async def recipe_from_photo(image: UploadFile = File(...)):
+async def recipe_from_photo(request: Request, image: UploadFile = File(...)):
     image_bytes = await image.read()
     media_type = image.content_type or "image/jpeg"
     result = claude_service.build_recipe_from_photo(image_bytes, media_type)
     if "error" in result:
         raise HTTPException(status_code=500, detail="Could not build recipe. Please try a clearer photo.")
-    verse = get_verse("recipe")
+    mode = _verse_mode(request)
+    verse = get_verse("recipe", mode) if mode != "off" else None
     return {"result": result, "verse": verse}
 
 class EmailRequest(BaseModel):
@@ -93,13 +103,14 @@ async def email_recipe_pdf(image: UploadFile = File(...), email: str = ""):
 # ── BUILD IT ──────────────────────────────────────────────────────────────────
 
 @router.post("/build")
-async def build_from_photo(image: UploadFile = File(...)):
+async def build_from_photo(request: Request, image: UploadFile = File(...)):
     image_bytes = await image.read()
     media_type = image.content_type or "image/jpeg"
     result = claude_service.build_plan_from_photo(image_bytes, media_type)
     if "error" in result:
         raise HTTPException(status_code=500, detail="Could not build a plan. Please try a clearer photo.")
-    verse = get_verse("build")
+    mode = _verse_mode(request)
+    verse = get_verse("build", mode) if mode != "off" else None
     return {"result": result, "verse": verse}
 
 @router.post("/build/email")
@@ -169,5 +180,8 @@ async def get_catches(limit: int = 20):
 # ── DAILY SCRIPTURE ───────────────────────────────────────────────────────────
 
 @router.get("/daily-verse")
-async def daily_verse():
-    return get_daily_verse()
+async def daily_verse(request: Request):
+    mode = _verse_mode(request)
+    if mode == "off":
+        return {"verse": "", "ref": ""}
+    return get_daily_verse(mode)
