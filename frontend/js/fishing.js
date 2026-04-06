@@ -56,6 +56,7 @@ function _outlookColor(outlook) {
 }
 
 function renderFishingResult(r, verse) {
+  console.log("[Fishing] Raw result:", JSON.stringify(r, null, 2));
   const outlook = r.outlook || "Fair";
   const outlookColor = _outlookColor(outlook);
 
@@ -67,35 +68,47 @@ function renderFishingResult(r, verse) {
     </div>`
   ).join("");
 
-  // Species
-  const species = (r.active_species || []).map(s => {
+  // Species — handle string, object, or object with missing fields
+  const speciesRaw = r.active_species || [];
+  const species = speciesRaw.map(s => {
     if (typeof s === "string") return `<li>${s}</li>`;
-    const actColor = (s.activity || "").toLowerCase() === "active" ? "var(--green)" :
-                     (s.activity || "").toLowerCase() === "slow" ? "var(--brown-lt)" : "var(--gold-dark, #b8860b)";
+    const name = s.name || s.species || JSON.stringify(s);
+    const activity = s.activity || "";
+    const note = s.note || s.tip || "";
+    const actColor = activity.toLowerCase() === "active" ? "var(--green)" :
+                     activity.toLowerCase() === "slow" ? "var(--brown-lt)" : "var(--gold-dark, #b8860b)";
     return `<li>
-      <strong>${s.name}</strong>
-      <span style="font-size:0.8rem;color:${actColor};margin-left:6px;">${s.activity || ""}</span>
-      ${s.note ? `<div style="font-size:0.85rem;color:var(--text-soft);margin-top:2px;">${s.note}</div>` : ""}
+      <strong>${name}</strong>
+      ${activity ? `<span style="font-size:0.8rem;color:${actColor};margin-left:6px;">${activity}</span>` : ""}
+      ${note ? `<div style="font-size:0.85rem;color:var(--text-soft);margin-top:2px;">${note}</div>` : ""}
     </li>`;
-  }).join("");
+  }).join("") || "<li style='color:var(--text-soft);'>No species data available</li>";
 
-  // Bait & lures
-  const baits = (r.bait_and_lures || r.recommended_bait || []).map(b => {
+  // Bait & lures — handle string, object, or object with missing fields
+  const baitsRaw = r.bait_and_lures || r.recommended_bait || [];
+  const baits = baitsRaw.map(b => {
     if (typeof b === "string") return `<li>${b}</li>`;
+    const name = b.name || b.bait || b.lure || JSON.stringify(b);
+    const bestFor = b.best_for || b.bestFor || b["best for"] || "";
+    const tip = b.tip || b.note || "";
     return `<li>
-      <strong>${b.name}</strong>
-      ${b.best_for ? `<span style="font-size:0.8rem;color:var(--text-soft);"> — ${b.best_for}</span>` : ""}
-      ${b.tip ? `<div style="font-size:0.85rem;color:var(--text-soft);margin-top:2px;">${b.tip}</div>` : ""}
+      <strong>${name}</strong>
+      ${bestFor ? `<span style="font-size:0.8rem;color:var(--text-soft);"> — ${bestFor}</span>` : ""}
+      ${tip ? `<div style="font-size:0.85rem;color:var(--text-soft);margin-top:2px;">${tip}</div>` : ""}
     </li>`;
-  }).join("");
+  }).join("") || "<li style='color:var(--text-soft);'>No bait data available</li>";
 
-  // Hot spots
-  const hotSpots = (r.hot_spots || []).map(h =>
-    `<div style="padding:10px 12px;background:var(--cream-dk);border-radius:var(--radius-sm);margin-bottom:8px;">
-      <div style="font-weight:600;color:var(--text);margin-bottom:4px;">📍 ${h.area_type}</div>
-      <div style="font-size:0.9rem;color:var(--text-soft);line-height:1.5;">${h.why}${h.tip ? " " + h.tip : ""}</div>
-    </div>`
-  ).join("");
+  // Hot spots — handle string or object
+  const hotSpots = (r.hot_spots || []).map(h => {
+    if (typeof h === "string") return `<div style="padding:10px 12px;background:var(--cream-dk);border-radius:var(--radius-sm);margin-bottom:8px;font-size:0.9rem;color:var(--text-soft);">📍 ${h}</div>`;
+    const area = h.area_type || h.area || h.location || "Suggested area";
+    const why = h.why || h.reason || "";
+    const tip = h.tip || "";
+    return `<div style="padding:10px 12px;background:var(--cream-dk);border-radius:var(--radius-sm);margin-bottom:8px;">
+      <div style="font-weight:600;color:var(--text);margin-bottom:4px;">📍 ${area}</div>
+      <div style="font-size:0.9rem;color:var(--text-soft);line-height:1.5;">${why}${tip ? " " + tip : ""}</div>
+    </div>`;
+  }).join("");
 
   const card = document.getElementById("fishing-result");
   card.innerHTML = `
