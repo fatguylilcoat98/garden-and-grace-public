@@ -624,10 +624,221 @@ input, textarea { font-family: inherit; }
 }
 .success-body { font-size: 1rem; color: var(--text-soft); line-height: 1.6; }
 
+/* ── Hamburger Button ──────────────────────────────────────────── */
+.hamburger-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 10;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  cursor: pointer;
+  padding: 0;
+}
+.hamburger-btn span {
+  display: block;
+  width: 22px;
+  height: 2.5px;
+  background: #fff;
+  border-radius: 2px;
+}
+
+/* ── Menu Overlay ─────────────────────────────────────────────── */
+.menu-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 998;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+.menu-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ── Hamburger Slide-Out Panel ─────────────────────────────────── */
+.hamburger-panel {
+  position: fixed;
+  top: 0;
+  right: -320px;
+  width: 300px;
+  max-width: 85vw;
+  height: 100vh;
+  background: var(--white);
+  z-index: 999;
+  box-shadow: -4px 0 24px rgba(0,0,0,0.15);
+  transition: right 0.3s ease;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+.hamburger-panel.open {
+  right: 0;
+}
+
+.menu-header {
+  background: linear-gradient(160deg, var(--forest), var(--forest-dk));
+  color: var(--white);
+  padding: 24px 20px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.menu-logo {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+.menu-close-btn {
+  color: rgba(255,255,255,0.8);
+  font-size: 1.3rem;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.1);
+}
+
+.menu-section-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--brown-lt);
+  padding: 16px 20px 6px;
+}
+
+.menu-hint {
+  font-size: 0.8rem;
+  color: var(--text-soft);
+  padding: 0 20px 10px;
+  line-height: 1.4;
+}
+
+/* ── Toggle Switch ─────────────────────────────────────────────── */
+.menu-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.menu-toggle-row:hover {
+  background: var(--cream);
+}
+.menu-toggle-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.menu-toggle-icon { font-size: 1.2rem; }
+.menu-toggle-label {
+  font-size: 0.95rem;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.toggle-switch {
+  width: 48px;
+  height: 28px;
+  border-radius: 14px;
+  background: var(--cream-dk);
+  border: 2px solid var(--parchment);
+  position: relative;
+  transition: background 0.25s, border-color 0.25s;
+  flex-shrink: 0;
+}
+.toggle-switch.active {
+  background: var(--forest);
+  border-color: var(--forest);
+}
+.toggle-knob {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--white);
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  transition: left 0.25s;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+}
+.toggle-switch.active .toggle-knob {
+  left: 22px;
+}
+
+.menu-divider {
+  height: 1px;
+  background: var(--cream-dk);
+  margin: 8px 20px;
+}
+
+.menu-link {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 12px 20px;
+  font-size: 0.95rem;
+  color: var(--text);
+  font-weight: 500;
+  transition: background 0.15s;
+}
+.menu-link:hover {
+  background: var(--cream);
+}
+
+.menu-footer {
+  padding: 20px;
+  text-align: center;
+  color: var(--brown-lt);
+  font-size: 0.8rem;
+  margin-top: auto;
+}
+.menu-footer-sub {
+  font-size: 0.75rem;
+  color: var(--parchment);
+  margin-top: 2px;
+}
+
+/* ── Fishing Hero Card ─────────────────────────────────────────── */
+.fishing-hero-card {
+  background: var(--white);
+  border-radius: var(--radius);
+  padding: 24px;
+  box-shadow: var(--shadow);
+  margin-bottom: 16px;
+  text-align: center;
+}
+.fishing-hero-title {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  color: var(--text);
+  line-height: 1.6;
+  margin-bottom: 4px;
+}
+.fishing-hero-sub {
+  font-size: 0.9rem;
+  color: var(--text-soft);
+}
+
 /* ── Responsive tweaks ──────────────────────────────────────────── */
 @media (max-width: 360px) {
   html { font-size: 16px; }
   .home-greeting { font-size: 1.5rem; }
   .photo-picker { flex-direction: column; align-items: center; }
   .photo-picker-btn { max-width: 100%; }
+  .hamburger-panel { width: 260px; }
 }

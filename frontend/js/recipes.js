@@ -28,6 +28,7 @@ function resetRecipe() {
   document.getElementById("recipe-email-btn").style.display = "none";
   document.getElementById("recipe-result").classList.remove("visible");
   document.getElementById("recipe-verse").classList.remove("visible");
+  document.getElementById("recipe-input").value = "";
   hideLoading("recipe");
 }
 

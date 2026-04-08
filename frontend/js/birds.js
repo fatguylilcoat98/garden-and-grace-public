@@ -19,8 +19,10 @@ function resetBirds() {
   document.getElementById("birds-upload-area").style.display = "block";
   document.getElementById("birds-preview").style.display = "none";
   document.getElementById("birds-analyze-btn").style.display = "none";
+  document.getElementById("birds-reset-btn").style.display = "none";
   document.getElementById("birds-result").classList.remove("visible");
   document.getElementById("birds-verse").classList.remove("visible");
+  document.getElementById("birds-input").value = "";
   hideLoading("birds");
 }
 
@@ -41,6 +43,7 @@ async function analyzeBirds() {
 }
 
 function renderBirdsResult(r, verse) {
+  document.getElementById("birds-reset-btn").style.display = "flex";
   const eagleSection = r.eagle_connection ? `
     <div class="eagle-highlight">
       <div class="eagle-highlight-label">🦅 Eagle Connection</div>

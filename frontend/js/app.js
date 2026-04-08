@@ -8,22 +8,65 @@
 
 const API = "";  // Same origin
 
-// ── Verse Mode (scripture / sayings / jokes / off) ───────────
-function getVerseMode() {
-  return localStorage.getItem("gg_verse_mode") || "scripture";
+// ── Verse/Content Mode ──────────────────────────────────────
+// Each content type can be toggled independently
+function getContentToggles() {
+  try {
+    const saved = localStorage.getItem("gg_content_toggles");
+    if (saved) return JSON.parse(saved);
+  } catch {}
+  return { scripture: true, sayings: false, jokes: false };
 }
 
-function setVerseMode(mode) {
-  localStorage.setItem("gg_verse_mode", mode);
-  updateVerseModeUI();
-  // Reload daily verse with new mode
+function saveContentToggles(toggles) {
+  localStorage.setItem("gg_content_toggles", JSON.stringify(toggles));
+}
+
+function getVerseMode() {
+  const t = getContentToggles();
+  if (t.scripture) return "scripture";
+  if (t.sayings) return "sayings";
+  if (t.jokes) return "jokes";
+  return "off";
+}
+
+function verseParam() {
+  return "verse_mode=" + getVerseMode();
+}
+
+function toggleContent(type) {
+  const t = getContentToggles();
+  t[type] = !t[type];
+  // Only one can be active at a time (radio-style)
+  if (t[type]) {
+    if (type !== "scripture") t.scripture = false;
+    if (type !== "sayings") t.sayings = false;
+    if (type !== "jokes") t.jokes = false;
+  }
+  saveContentToggles(t);
+  updateMenuToggles();
+  refreshDailyVerse();
+}
+
+function updateMenuToggles() {
+  const t = getContentToggles();
+  ["scripture", "sayings", "jokes"].forEach(key => {
+    const toggle = document.getElementById(`toggle-${key}`);
+    if (toggle) {
+      toggle.classList.toggle("active", t[key]);
+    }
+  });
+}
+
+function refreshDailyVerse() {
+  const mode = getVerseMode();
   apiGet("/features/daily-verse?verse_mode=" + mode).then(verse => {
     const vt = document.getElementById("daily-verse-text");
     const vr = document.getElementById("daily-verse-ref");
     if (vt && vr) {
       if (verse.verse) {
-        vt.textContent = `"${verse.verse}"`;
-        vr.textContent = `— ${verse.ref}`;
+        vt.textContent = '"' + verse.verse + '"';
+        vr.textContent = "— " + verse.ref;
         vt.parentElement.style.display = "";
       } else {
         vt.parentElement.style.display = "none";
@@ -32,41 +75,24 @@ function setVerseMode(mode) {
   }).catch(() => {});
 }
 
-function updateVerseModeUI() {
-  const mode = getVerseMode();
-  document.querySelectorAll(".verse-mode-btn").forEach(btn => {
-    const isActive = btn.dataset.mode === mode;
-    btn.style.background = isActive ? "var(--green, #3d6b3f)" : "transparent";
-    btn.style.color = isActive ? "#fff" : "var(--text, #333)";
-    btn.style.borderRadius = "8px";
-  });
+// ── Hamburger Menu ──────────────────────────────────────────
+function toggleMenu() {
+  const menu = document.getElementById("hamburger-panel");
+  const overlay = document.getElementById("menu-overlay");
+  if (!menu) return;
+  const isOpen = menu.classList.contains("open");
+  menu.classList.toggle("open", !isOpen);
+  overlay.classList.toggle("open", !isOpen);
 }
 
-function toggleSettingsMenu() {
-  const dd = document.getElementById("settings-dropdown");
-  if (!dd) return;
-  const isOpen = dd.style.display !== "none";
-  dd.style.display = isOpen ? "none" : "block";
-  // Close on outside click
-  if (!isOpen) {
-    setTimeout(() => {
-      document.addEventListener("click", _closeSettingsOutside, { once: true });
-    }, 10);
-  }
+function closeMenu() {
+  const menu = document.getElementById("hamburger-panel");
+  const overlay = document.getElementById("menu-overlay");
+  if (menu) menu.classList.remove("open");
+  if (overlay) overlay.classList.remove("open");
 }
 
-function _closeSettingsOutside(e) {
-  const menu = document.getElementById("settings-menu");
-  if (menu && !menu.contains(e.target)) {
-    document.getElementById("settings-dropdown").style.display = "none";
-  }
-}
-
-function verseParam() {
-  return "verse_mode=" + getVerseMode();
-}
-
-// ── State ────────────────────────────────────────────────────────
+// ── State ───────────────────────────────────────────────────
 const state = {
   user: null,
   sessionToken: null,
@@ -97,7 +123,7 @@ function clearSession() {
   localStorage.removeItem("gg_user");
 }
 
-// ── Router ───────────────────────────────────────────────────────
+// ── Router ──────────────────────────────────────────────────
 function showScreen(id) {
   document.querySelectorAll(".screen").forEach(s => {
     s.classList.remove("active");
@@ -109,6 +135,7 @@ function showScreen(id) {
     screen.classList.add("active");
   }
   window.scrollTo(0, 0);
+  closeMenu();
 }
 
 function goHome() {
@@ -121,10 +148,10 @@ function goAuth() {
   showScreen("screen-auth");
 }
 
-// ── API Helper (with rate limit detection) ───────────────────────
+// ── API Helper ──────────────────────────────────────────────
 async function apiPost(path, data, isFormData = false) {
   const headers = {};
-  if (state.sessionToken) headers["Authorization"] = `Bearer ${state.sessionToken}`;
+  if (state.sessionToken) headers["Authorization"] = "Bearer " + state.sessionToken;
   if (!isFormData) headers["Content-Type"] = "application/json";
 
   const sep = path.includes("?") ? "&" : "?";
@@ -137,9 +164,8 @@ async function apiPost(path, data, isFormData = false) {
 
   const json = await response.json();
 
-  // Rate limit detection
   if (response.status === 429 || json.status === "limit_reached") {
-    const msg = json.message || "Daily limit reached for now. Please try again tomorrow.";
+    const msg = json.message || "Daily limit reached. Please try again tomorrow.";
     showLimitMessage(msg, json.type);
     throw new Error("LIMIT_REACHED");
   }
@@ -150,16 +176,15 @@ async function apiPost(path, data, isFormData = false) {
 
 async function apiGet(path) {
   const headers = {};
-  if (state.sessionToken) headers["Authorization"] = `Bearer ${state.sessionToken}`;
+  if (state.sessionToken) headers["Authorization"] = "Bearer " + state.sessionToken;
   const response = await fetch(API + path, { headers });
   const json = await response.json();
   if (!response.ok) throw new Error(json.detail || "Something went wrong.");
   return json;
 }
 
-// ── Rate Limit UI ────────────────────────────────────────────────
+// ── Rate Limit UI ───────────────────────────────────────────
 function showLimitMessage(msg, type) {
-  // Hide any loading states
   document.querySelectorAll(".loading-overlay").forEach(el => el.classList.remove("visible"));
   document.querySelectorAll('[id$="-content"]').forEach(el => el.style.display = "");
 
@@ -168,77 +193,55 @@ function showLimitMessage(msg, type) {
 
   const overlay = document.createElement("div");
   overlay.id = "limit-overlay";
-  overlay.style.cssText = `
-    position:fixed;inset:0;z-index:9999;
-    background:rgba(30,40,30,0.95);
-    display:flex;align-items:center;justify-content:center;
-    padding:24px;
-  `;
-  overlay.innerHTML = `
-    <div style="text-align:center;max-width:360px;">
-      <div style="font-size:40px;margin-bottom:16px;">🌿</div>
-      <h2 style="font-size:20px;color:#e8dcc8;margin-bottom:12px;font-family:Georgia,serif;">
-        ${type === 'daily' ? 'Daily limit reached for now' : 'Just a moment'}
-      </h2>
-      <p style="font-size:15px;color:#a09880;line-height:1.7;margin-bottom:24px;">
-        ${msg}
-      </p>
-      ${type === 'daily' ? `
-        <p style="font-size:13px;color:#7a7060;margin-bottom:20px;">
-          Want more? Support Garden & Grace for unlimited access.
-        </p>
-        <a href="mailto:thegoodneighborguard@gmail.com?subject=Garden%20and%20Grace%20Access"
-           style="display:inline-block;padding:12px 28px;background:#5a7a5a;color:#fff;
-                  border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;
-                  margin-bottom:12px;">
-          Request Access
-        </a><br>
-      ` : ''}
-      <button onclick="document.getElementById('limit-overlay').remove()"
-              style="margin-top:8px;padding:10px 24px;background:transparent;
-                     border:1px solid #5a6a5a;color:#a09880;border-radius:8px;
-                     cursor:pointer;font-size:14px;">
-        Go Back
-      </button>
-    </div>
-  `;
+  overlay.style.cssText = "position:fixed;inset:0;z-index:9999;background:rgba(30,40,30,0.95);display:flex;align-items:center;justify-content:center;padding:24px;";
+  overlay.innerHTML = '<div style="text-align:center;max-width:360px;">' +
+    '<div style="font-size:40px;margin-bottom:16px;">🌿</div>' +
+    '<h2 style="font-size:20px;color:#e8dcc8;margin-bottom:12px;font-family:Georgia,serif;">' +
+    (type === "daily" ? "Daily limit reached" : "Just a moment") + '</h2>' +
+    '<p style="font-size:15px;color:#a09880;line-height:1.7;margin-bottom:24px;">' + msg + '</p>' +
+    '<button onclick="document.getElementById(\'limit-overlay\').remove()" ' +
+    'style="padding:12px 24px;background:transparent;border:1px solid #5a6a5a;color:#a09880;border-radius:8px;cursor:pointer;font-size:14px;">Go Back</button>' +
+    '</div>';
   document.body.appendChild(overlay);
 }
 
-// ── Usage Counter ────────────────────────────────────────────────
+// ── Usage Counter ───────────────────────────────────────────
 async function updateUsageDisplay() {
   try {
     const usage = await apiGet("/usage");
     const el = document.getElementById("usage-counter");
     if (el) {
-      el.textContent = `${usage.remaining} of ${usage.daily_limit} uses remaining today`;
+      el.textContent = usage.remaining + " of " + usage.daily_limit + " uses remaining today";
       el.style.display = "block";
     }
   } catch(e) { /* silent */ }
 }
 
-// ── Toast ─────────────────────────────────────────────────────────
-function toast(msg, type = "success") {
+// ── Toast ───────────────────────────────────────────────────
+function toast(msg, type) {
+  type = type || "success";
   const el = document.getElementById("toast");
   el.textContent = msg;
-  el.className = `toast ${type} show`;
+  el.className = "toast " + type + " show";
   setTimeout(() => el.classList.remove("show"), 3500);
 }
 
-// ── Loading helpers ───────────────────────────────────────────────
-function showLoading(screenId, msg = "Working on it…") {
-  document.getElementById(`${screenId}-loading`).classList.add("visible");
-  document.getElementById(`${screenId}-loading`).querySelector(".loading-text").textContent = msg;
-  document.getElementById(`${screenId}-content`).style.display = "none";
+// ── Loading helpers ─────────────────────────────────────────
+function showLoading(screenId, msg) {
+  msg = msg || "Working on it...";
+  var lo = document.getElementById(screenId + "-loading");
+  lo.classList.add("visible");
+  lo.querySelector(".loading-text").textContent = msg;
+  document.getElementById(screenId + "-content").style.display = "none";
 }
 function hideLoading(screenId) {
-  document.getElementById(`${screenId}-loading`).classList.remove("visible");
-  document.getElementById(`${screenId}-content`).style.display = "";
+  document.getElementById(screenId + "-loading").classList.remove("visible");
+  document.getElementById(screenId + "-content").style.display = "";
 }
 
-// ── Date helpers ──────────────────────────────────────────────────
+// ── Date helpers ────────────────────────────────────────────
 function getGreeting() {
-  const h = new Date().getHours();
+  var h = new Date().getHours();
   if (h < 12) return "Good morning";
   if (h < 17) return "Good afternoon";
   return "Good evening";
@@ -250,41 +253,56 @@ function formatDate() {
   });
 }
 
-// ── Photo upload helper ───────────────────────────────────────────
+// ── Photo upload helper (fixed for re-entry) ────────────────
+// Uses a registry to prevent duplicate event listeners
+const _uploadBound = {};
+
 function setupPhotoUpload(areaId, inputId, previewId, onFile) {
   const area    = document.getElementById(areaId);
   const input   = document.getElementById(inputId);
   const preview = document.getElementById(previewId);
+  if (!area || !input) return;
 
-  area.addEventListener("click", () => input.click());
-  area.addEventListener("dragover", e => { e.preventDefault(); area.classList.add("dragover"); });
-  area.addEventListener("dragleave", () => area.classList.remove("dragover"));
-  area.addEventListener("drop", e => {
+  // Prevent duplicate binding
+  if (_uploadBound[inputId]) {
+    // Already bound — just replace the callback
+    _uploadBound[inputId].onFile = onFile;
+    return;
+  }
+
+  var handler = {
+    onFile: onFile,
+    handleFile: function(file) {
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        preview.src = e.target.result;
+        preview.style.display = "block";
+        area.style.display = "none";
+      };
+      reader.readAsDataURL(file);
+      if (handler.onFile) handler.onFile(file);
+    }
+  };
+
+  area.addEventListener("click", function() { input.click(); });
+  area.addEventListener("dragover", function(e) { e.preventDefault(); area.classList.add("dragover"); });
+  area.addEventListener("dragleave", function() { area.classList.remove("dragover"); });
+  area.addEventListener("drop", function(e) {
     e.preventDefault();
     area.classList.remove("dragover");
-    const file = e.dataTransfer.files[0];
-    if (file) handleFile(file);
+    if (e.dataTransfer.files[0]) handler.handleFile(e.dataTransfer.files[0]);
   });
-  input.addEventListener("change", () => {
-    if (input.files[0]) handleFile(input.files[0]);
+  input.addEventListener("change", function() {
+    if (input.files[0]) handler.handleFile(input.files[0]);
   });
 
-  function handleFile(file) {
-    const reader = new FileReader();
-    reader.onload = e => {
-      preview.src = e.target.result;
-      preview.style.display = "block";
-      area.style.display = "none";
-    };
-    reader.readAsDataURL(file);
-    if (onFile) onFile(file);
-  }
+  _uploadBound[inputId] = handler;
 }
 
-// ── Init ──────────────────────────────────────────────────────────
-document.addEventListener("DOMContentLoaded", () => {
+// ── Init ────────────────────────────────────────────────────
+document.addEventListener("DOMContentLoaded", function() {
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("/static/service-worker.js").catch(() => {});
+    navigator.serviceWorker.register("/static/service-worker.js").catch(function() {});
   }
 
   if (loadSession()) {
@@ -296,27 +314,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
 function initHome() {
   showScreen("screen-home");
-  const name = state.user?.name || "Friend";
-  document.getElementById("home-greeting").textContent = `${getGreeting()}, ${name} 🌿`;
+  var name = state.user ? state.user.name : "Friend";
+  document.getElementById("home-greeting").textContent = getGreeting() + ", " + name + " 🌿";
   document.getElementById("home-date").textContent = formatDate();
 
-  // Load daily verse with current mode
-  const mode = getVerseMode();
-  apiGet("/features/daily-verse?verse_mode=" + mode).then(verse => {
-    const vt = document.getElementById("daily-verse-text");
-    const vr = document.getElementById("daily-verse-ref");
-    if (verse.verse) {
-      vt.textContent = `"${verse.verse}"`;
-      vr.textContent = `— ${verse.ref}`;
-      vt.parentElement.style.display = "";
-    } else {
-      vt.parentElement.style.display = "none";
-    }
-  }).catch(() => {});
-
-  // Show usage counter
+  refreshDailyVerse();
   updateUsageDisplay();
-
-  // Set verse mode toggle active state
-  updateVerseModeUI();
+  updateMenuToggles();
 }

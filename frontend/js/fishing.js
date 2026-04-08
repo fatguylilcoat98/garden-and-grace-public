@@ -80,35 +80,40 @@ function renderFishingResult(r, verse) {
     </div>`;
   }).join("");
 
-  // Species
+  // Species — rich cards
   const speciesRaw = r.active_species || [];
   const species = speciesRaw.map(s => {
-    if (typeof s === "string") return `<li>${s}</li>`;
+    if (typeof s === "string") return `<div class="fish-card"><div class="fish-card-name">🐟 ${s}</div></div>`;
     const name = _val(s.name) || _val(s.species) || _val(s.fish) || Object.values(s).find(v => typeof v === "string") || "Unknown";
     const activity = _val(s.activity) || _val(s.status) || "";
     const note = _val(s.note) || _val(s.tip) || "";
-    const actColor = activity.toLowerCase() === "active" ? "var(--green)" :
-                     activity.toLowerCase() === "slow" ? "var(--brown-lt)" : "var(--gold-dark, #b8860b)";
-    return `<li>
-      <strong>${name}</strong>
-      ${activity ? `<span style="font-size:0.8rem;color:${actColor};margin-left:6px;">${activity}</span>` : ""}
-      ${note ? `<div style="font-size:0.85rem;color:var(--text-soft);margin-top:2px;">${note}</div>` : ""}
-    </li>`;
-  }).join("") || "<li style='color:var(--text-soft);'>No species data available</li>";
+    const bait = _val(s.best_bait) || _val(s.bait) || "";
+    const actLower = activity.toLowerCase();
+    const actColor = actLower === "active" || actLower === "high" ? "#2d7a3a" :
+                     actLower === "slow" || actLower === "low" ? "#8b6914" : "#5a8a3a";
+    return `<div style="background:var(--white);border-radius:var(--radius-sm);padding:14px;margin-bottom:8px;border-left:4px solid ${actColor};box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div style="font-weight:700;color:var(--text);font-size:1.05rem;">🐟 ${name}</div>
+        ${activity ? `<span style="font-size:0.75rem;font-weight:700;color:${actColor};text-transform:uppercase;background:${actColor}15;padding:3px 8px;border-radius:4px;">${activity}</span>` : ""}
+      </div>
+      ${bait ? `<div style="font-size:0.85rem;color:var(--forest);margin-top:6px;">🪱 Best bait: <strong>${bait}</strong></div>` : ""}
+      ${note ? `<div style="font-size:0.85rem;color:var(--text-soft);margin-top:4px;">${note}</div>` : ""}
+    </div>`;
+  }).join("") || '<div style="color:var(--text-soft);text-align:center;padding:12px;">No species data available</div>';
 
-  // Bait & lures
+  // Bait & lures — rich cards
   const baitsRaw = r.bait_and_lures || r.recommended_bait || [];
   const baits = baitsRaw.map(b => {
-    if (typeof b === "string") return `<li>${b}</li>`;
+    if (typeof b === "string") return `<div style="background:var(--cream-dk);border-radius:var(--radius-sm);padding:12px;margin-bottom:8px;font-size:0.95rem;color:var(--text);">🪱 ${b}</div>`;
     const name = _val(b.name) || _val(b.bait) || _val(b.lure) || Object.values(b).find(v => typeof v === "string") || "Unknown";
-    const bestFor = _val(b.best_for) || _val(b.bestFor) || "";
-    const tip = _val(b.tip) || _val(b.note) || "";
-    return `<li>
-      <strong>${name}</strong>
-      ${bestFor ? `<span style="font-size:0.8rem;color:var(--text-soft);"> — ${bestFor}</span>` : ""}
-      ${tip ? `<div style="font-size:0.85rem;color:var(--text-soft);margin-top:2px;">${tip}</div>` : ""}
-    </li>`;
-  }).join("") || "<li style='color:var(--text-soft);'>No bait data available</li>";
+    const bestFor = _val(b.best_for) || _val(b.bestFor) || _val(b.target) || "";
+    const tip = _val(b.tip) || _val(b.note) || _val(b.technique) || "";
+    return `<div style="background:var(--cream-dk);border-radius:var(--radius-sm);padding:14px;margin-bottom:8px;">
+      <div style="font-weight:700;color:var(--text);font-size:1rem;">🪱 ${name}</div>
+      ${bestFor ? `<div style="font-size:0.85rem;color:var(--forest);margin-top:4px;">Best for: <strong>${bestFor}</strong></div>` : ""}
+      ${tip ? `<div style="font-size:0.85rem;color:var(--text-soft);margin-top:4px;">${tip}</div>` : ""}
+    </div>`;
+  }).join("") || '<div style="color:var(--text-soft);text-align:center;padding:12px;">No bait data available</div>';
 
   // Hot spots
   const hotSpots = (r.hot_spots || []).map(h => {
@@ -140,11 +145,11 @@ function renderFishingResult(r, verse) {
     <div style="margin-bottom:12px;">${times}</div>
     ` : ""}
 
-    <div class="result-section-label">🐟 Fish Activity</div>
-    <ul class="result-list">${species}</ul>
+    <div class="result-section-label">🐟 Fish In Your Area</div>
+    ${species}
 
-    <div class="result-section-label">🪱 Bait &amp; Lure Ideas</div>
-    <ul class="result-list">${baits}</ul>
+    <div class="result-section-label">🪱 Recommended Bait &amp; Lures</div>
+    ${baits}
 
     ${r.tides_and_current ? `
     <div class="result-section-label">🌊 Tides &amp; Current</div>

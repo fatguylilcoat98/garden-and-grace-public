@@ -22,6 +22,62 @@
 </head>
 <body>
 
+<!-- Menu Overlay (closes menu on tap) -->
+<div id="menu-overlay" class="menu-overlay" onclick="closeMenu()"></div>
+
+<!-- ══════════════════════════════════════════
+     HAMBURGER SLIDE-OUT MENU
+══════════════════════════════════════════ -->
+<div id="hamburger-panel" class="hamburger-panel">
+  <div class="menu-header">
+    <div class="menu-logo">🌿 Garden &amp; Grace</div>
+    <button class="menu-close-btn" onclick="closeMenu()">✕</button>
+  </div>
+
+  <div class="menu-section-label">Closing Words</div>
+  <p class="menu-hint">Choose what appears after each result. Only one can be active.</p>
+
+  <div class="menu-toggle-row" onclick="toggleContent('scripture')">
+    <div class="menu-toggle-info">
+      <span class="menu-toggle-icon">📖</span>
+      <span class="menu-toggle-label">Bible Verses (KJV)</span>
+    </div>
+    <div class="toggle-switch" id="toggle-scripture"><div class="toggle-knob"></div></div>
+  </div>
+
+  <div class="menu-toggle-row" onclick="toggleContent('sayings')">
+    <div class="menu-toggle-info">
+      <span class="menu-toggle-icon">✨</span>
+      <span class="menu-toggle-label">Inspirational Quotes</span>
+    </div>
+    <div class="toggle-switch" id="toggle-sayings"><div class="toggle-knob"></div></div>
+  </div>
+
+  <div class="menu-toggle-row" onclick="toggleContent('jokes')">
+    <div class="menu-toggle-info">
+      <span class="menu-toggle-icon">😄</span>
+      <span class="menu-toggle-label">Lighthearted Jokes</span>
+    </div>
+    <div class="toggle-switch" id="toggle-jokes"><div class="toggle-knob"></div></div>
+  </div>
+
+  <div class="menu-divider"></div>
+
+  <div class="menu-section-label">Quick Links</div>
+  <button class="menu-link" onclick="initGarden()">🌿 Garden</button>
+  <button class="menu-link" onclick="initBirds()">🦅 Birds &amp; Wildlife</button>
+  <button class="menu-link" onclick="initFishing()">🎣 Fishing</button>
+  <button class="menu-link" onclick="initRecipe()">🍽️ Recipe Builder</button>
+  <button class="menu-link" onclick="initBuild()">🔨 Build It</button>
+
+  <div class="menu-divider"></div>
+
+  <div class="menu-footer">
+    <div>The Good Neighbor Guard</div>
+    <div class="menu-footer-sub">Truth · Safety · We Got Your Back</div>
+  </div>
+</div>
+
 <div class="app-shell">
 
   <!-- ══════════════════════════════════════════
@@ -44,7 +100,6 @@
           </button>
         </form>
       </div>
-
     </div>
   </div>
 
@@ -53,7 +108,7 @@
   ══════════════════════════════════════════ -->
   <div id="screen-home" class="screen">
 
-    <div class="home-header" style="position:relative;">
+    <div class="home-header">
       <div class="home-greeting" id="home-greeting">Good morning 🌿</div>
       <div class="home-date" id="home-date"></div>
       <div class="daily-verse-card">
@@ -61,17 +116,10 @@
         <div class="daily-verse-ref" id="daily-verse-ref">— Psalm 118:24</div>
       </div>
 
-      <!-- Settings menu (top-right corner) -->
-      <div id="settings-menu" style="position:absolute;top:16px;right:16px;z-index:10;">
-        <button onclick="toggleSettingsMenu()" style="width:36px;height:36px;border-radius:50%;border:1px solid var(--cream-dk);background:var(--white);font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,0.08);">⚙️</button>
-        <div id="settings-dropdown" style="display:none;position:absolute;right:0;top:42px;background:var(--white);border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.12);border:1px solid var(--cream-dk);padding:12px 14px;min-width:180px;">
-          <div style="font-size:0.75rem;font-weight:600;color:var(--text-soft);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">Closing Words</div>
-          <button class="verse-mode-btn" data-mode="scripture" onclick="setVerseMode('scripture')" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 10px;border:none;background:none;border-radius:8px;font-size:0.9rem;color:var(--text);cursor:pointer;text-align:left;">📖 Scripture</button>
-          <button class="verse-mode-btn" data-mode="sayings" onclick="setVerseMode('sayings')" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 10px;border:none;background:none;border-radius:8px;font-size:0.9rem;color:var(--text);cursor:pointer;text-align:left;">✨ Sayings</button>
-          <button class="verse-mode-btn" data-mode="jokes" onclick="setVerseMode('jokes')" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 10px;border:none;background:none;border-radius:8px;font-size:0.9rem;color:var(--text);cursor:pointer;text-align:left;">😄 Jokes</button>
-          <button class="verse-mode-btn" data-mode="off" onclick="setVerseMode('off')" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 10px;border:none;background:none;border-radius:8px;font-size:0.9rem;color:var(--text);cursor:pointer;text-align:left;">🚫 Off</button>
-        </div>
-      </div>
+      <!-- Hamburger button (top-right) -->
+      <button class="hamburger-btn" onclick="toggleMenu()">
+        <span></span><span></span><span></span>
+      </button>
     </div>
 
     <div class="feature-grid">
@@ -96,7 +144,7 @@
         <div class="feature-icon">🎣</div>
         <div>
           <span class="feature-label">Fishing</span>
-          <span class="feature-desc">Today's conditions at your location</span>
+          <span class="feature-desc">Reports, bait, fish in your area</span>
         </div>
       </button>
 
@@ -144,10 +192,10 @@
     <div id="garden-content" class="feature-content">
       <div id="garden-upload-area" class="photo-upload-area">
         <div class="upload-icon">📸</div>
-        <div class="upload-text">Take or upload a photo</div>
+        <div class="upload-text">Tap to take a photo or choose one</div>
         <div class="upload-subtext">Any plant, flower, vegetable, or garden bed</div>
       </div>
-      <input type="file" id="garden-input" accept="image/*" style="display:none;" />
+      <input type="file" id="garden-input" accept="image/*" capture="environment" style="display:none;" />
       <img id="garden-preview" class="photo-preview" alt="Plant photo" />
 
       <button id="garden-analyze-btn" class="btn-primary" style="display:none;" onclick="analyzeGarden()">
@@ -181,10 +229,10 @@
     <div id="birds-content" class="feature-content">
       <div id="birds-upload-area" class="photo-upload-area">
         <div class="upload-icon">📸</div>
-        <div class="upload-text">Take or upload a photo</div>
+        <div class="upload-text">Tap to take a photo or choose one</div>
         <div class="upload-subtext">Any bird, animal, or creature — Bald Eagles welcome! 🦅</div>
       </div>
-      <input type="file" id="birds-input" accept="image/*" style="display:none;" />
+      <input type="file" id="birds-input" accept="image/*" capture="environment" style="display:none;" />
       <img id="birds-preview" class="photo-preview" alt="Wildlife photo" />
 
       <button id="birds-analyze-btn" class="btn-primary" style="display:none;" onclick="analyzeBirds()">
@@ -216,16 +264,14 @@
     </div>
 
     <div id="fishing-content" class="feature-content">
-      <div style="background:var(--white); border-radius:var(--radius); padding:20px; box-shadow:var(--shadow); margin-bottom:16px; text-align:center;">
+      <div class="fishing-hero-card">
         <div style="font-size:2.5rem; margin-bottom:10px;">🎣</div>
-        <p style="font-family:var(--font-display); font-size:1.1rem; color:var(--text); line-height:1.6; margin-bottom:4px;">
-          Get today's full fishing report for your location.
-        </p>
-        <p style="font-size:0.9rem; color:var(--text-soft);">Outlook, best times, fish activity, bait ideas, hot spots, tides — everything you need.</p>
+        <p class="fishing-hero-title">Today's Fishing Report</p>
+        <p class="fishing-hero-sub">Fish species, best bait, hot spots, conditions — everything for your area.</p>
       </div>
 
       <button id="fishing-get-btn" class="btn-primary" onclick="getFishingReport()">
-        🎣 Get Today's Report
+        🎣 Get My Local Report
       </button>
 
       <div class="result-card" id="fishing-result"></div>
@@ -233,10 +279,10 @@
 
       <!-- What Did I Catch? -->
       <div style="margin-top:24px;display:flex;gap:10px;flex-wrap:wrap;">
-        <button class="btn-primary" onclick="showCatchIdForm()" style="background:#2d6a4f;box-shadow:none;font-size:0.95rem;padding:12px 20px;flex:1;">
+        <button class="btn-primary" onclick="showCatchIdForm()" style="background:#2d6a4f;box-shadow:none;font-size:0.95rem;padding:14px 20px;flex:1;">
           🐟 What Did I Catch?
         </button>
-        <button class="btn-primary" onclick="showCatchForm()" style="background:var(--green);box-shadow:none;font-size:0.95rem;padding:12px 20px;flex:1;">
+        <button class="btn-primary" onclick="showCatchForm()" style="background:var(--forest);box-shadow:none;font-size:0.95rem;padding:14px 20px;flex:1;">
           📸 Post Your Catch
         </button>
       </div>
@@ -246,8 +292,9 @@
         <div style="font-family:var(--font-display);font-size:1.1rem;color:var(--text);margin-bottom:14px;text-align:center;">Snap a photo of your catch 🐟</div>
 
         <input type="file" id="catch-id-photo-input" accept="image/*" capture="environment" style="display:none;" onchange="handleCatchIdPhoto(this)" />
-        <div id="catch-id-photo-area" style="display:flex;align-items:center;justify-content:center;border:2px dashed var(--cream-dk);border-radius:var(--radius-sm);padding:24px;margin-bottom:12px;cursor:pointer;text-align:center;color:var(--text-soft);" onclick="document.getElementById('catch-id-photo-input').click()">
-          📸 Tap to photograph your catch
+        <div id="catch-id-photo-area" class="photo-upload-area" style="padding:20px;margin-bottom:12px;" onclick="document.getElementById('catch-id-photo-input').click()">
+          <div class="upload-icon" style="font-size:2rem;">📸</div>
+          <div class="upload-text" style="font-size:0.95rem;">Tap to photograph your catch</div>
         </div>
         <img id="catch-id-preview" style="display:none;width:100%;border-radius:var(--radius-sm);margin-bottom:12px;max-height:240px;object-fit:cover;" alt="Catch preview" />
 
@@ -262,27 +309,28 @@
         <div style="font-family:var(--font-display);font-size:1.1rem;color:var(--text);margin-bottom:14px;text-align:center;">Share Your Catch 🎣</div>
 
         <input type="file" id="catch-photo-input" accept="image/*" capture="environment" style="display:none;" onchange="handleCatchPhoto(this)" />
-        <div id="catch-photo-area" style="display:flex;align-items:center;justify-content:center;border:2px dashed var(--cream-dk);border-radius:var(--radius-sm);padding:24px;margin-bottom:12px;cursor:pointer;text-align:center;color:var(--text-soft);" onclick="document.getElementById('catch-photo-input').click()">
-          📸 Tap to add a photo
+        <div id="catch-photo-area" class="photo-upload-area" style="padding:20px;margin-bottom:12px;" onclick="document.getElementById('catch-photo-input').click()">
+          <div class="upload-icon" style="font-size:2rem;">📸</div>
+          <div class="upload-text" style="font-size:0.95rem;">Tap to add a photo</div>
         </div>
         <img id="catch-preview" style="display:none;width:100%;border-radius:var(--radius-sm);margin-bottom:12px;max-height:200px;object-fit:cover;" alt="Catch preview" />
 
         <div class="field-group" style="margin-bottom:10px;">
           <label style="font-size:0.85rem;color:var(--text-soft);margin-bottom:4px;display:block;">Fish Type</label>
-          <input type="text" id="catch-fish" placeholder="e.g., Largemouth Bass" style="width:100%;padding:10px 12px;border:1px solid var(--cream-dk);border-radius:var(--radius-sm);font-size:1rem;color:var(--text);" maxlength="100" />
+          <input type="text" id="catch-fish" placeholder="e.g., Largemouth Bass" style="width:100%;padding:12px;border:1px solid var(--cream-dk);border-radius:var(--radius-sm);font-size:1rem;color:var(--text);" maxlength="100" />
         </div>
         <div class="field-group" style="margin-bottom:10px;">
           <label style="font-size:0.85rem;color:var(--text-soft);margin-bottom:4px;display:block;">Location</label>
-          <input type="text" id="catch-location" placeholder="e.g., Folsom Lake, north shore" style="width:100%;padding:10px 12px;border:1px solid var(--cream-dk);border-radius:var(--radius-sm);font-size:1rem;color:var(--text);" maxlength="200" />
+          <input type="text" id="catch-location" placeholder="e.g., Folsom Lake, north shore" style="width:100%;padding:12px;border:1px solid var(--cream-dk);border-radius:var(--radius-sm);font-size:1rem;color:var(--text);" maxlength="200" />
         </div>
         <div class="field-group" style="margin-bottom:14px;">
           <label style="font-size:0.85rem;color:var(--text-soft);margin-bottom:4px;display:block;">Note (optional)</label>
-          <input type="text" id="catch-note" placeholder="e.g., Caught on a crankbait near the dock" style="width:100%;padding:10px 12px;border:1px solid var(--cream-dk);border-radius:var(--radius-sm);font-size:1rem;color:var(--text);" maxlength="300" />
+          <input type="text" id="catch-note" placeholder="e.g., Caught on a crankbait near the dock" style="width:100%;padding:12px;border:1px solid var(--cream-dk);border-radius:var(--radius-sm);font-size:1rem;color:var(--text);" maxlength="300" />
         </div>
 
         <div style="display:flex;gap:10px;">
           <button id="catch-submit-btn" class="btn-primary" onclick="submitCatch()" style="flex:1;">Post Catch 🎣</button>
-          <button class="btn-primary" onclick="hideCatchForm()" style="flex:0;background:transparent;color:var(--text-soft);box-shadow:none;border:1px solid var(--cream-dk);min-width:70px;">Cancel</button>
+          <button class="btn-secondary" onclick="hideCatchForm()" style="flex:0;min-width:80px;margin-top:0;">Cancel</button>
         </div>
       </div>
 
@@ -312,10 +360,10 @@
     <div id="recipe-content" class="feature-content">
       <div id="recipe-upload-area" class="photo-upload-area">
         <div class="upload-icon">📸</div>
-        <div class="upload-text">Take or upload a photo</div>
+        <div class="upload-text">Tap to take a photo or choose one</div>
         <div class="upload-subtext">Any meal — on TV, at a restaurant, anywhere</div>
       </div>
-      <input type="file" id="recipe-input" accept="image/*" style="display:none;" />
+      <input type="file" id="recipe-input" accept="image/*" capture="environment" style="display:none;" />
       <img id="recipe-preview" class="photo-preview" alt="Food photo" />
 
       <button id="recipe-analyze-btn" class="btn-primary" style="display:none;" onclick="analyzeRecipe()">
@@ -353,10 +401,10 @@
     <div id="build-content" class="feature-content">
       <div id="build-upload-area" class="photo-upload-area">
         <div class="upload-icon">📸</div>
-        <div class="upload-text">Take or upload a photo</div>
+        <div class="upload-text">Tap to take a photo or choose one</div>
         <div class="upload-subtext">Any structure — gazebo, birdhouse, shelves, garden bed…</div>
       </div>
-      <input type="file" id="build-input" accept="image/*" style="display:none;" />
+      <input type="file" id="build-input" accept="image/*" capture="environment" style="display:none;" />
       <img id="build-preview" class="photo-preview" alt="Structure photo" />
 
       <button id="build-analyze-btn" class="btn-primary" style="display:none;" onclick="analyzeBuild()">

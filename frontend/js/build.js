@@ -25,6 +25,7 @@ function resetBuild() {
   document.getElementById("build-email-btn").style.display = "none";
   document.getElementById("build-result").classList.remove("visible");
   document.getElementById("build-verse").classList.remove("visible");
+  document.getElementById("build-input").value = "";
   hideLoading("build");
 }
 

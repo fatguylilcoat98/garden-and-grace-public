@@ -19,8 +19,10 @@ function resetGarden() {
   document.getElementById("garden-upload-area").style.display = "block";
   document.getElementById("garden-preview").style.display = "none";
   document.getElementById("garden-analyze-btn").style.display = "none";
+  document.getElementById("garden-reset-btn").style.display = "none";
   document.getElementById("garden-result").classList.remove("visible");
   document.getElementById("garden-verse").classList.remove("visible");
+  document.getElementById("garden-input").value = "";
   hideLoading("garden");
 }
 
@@ -41,6 +43,7 @@ async function analyzeGarden() {
 }
 
 function renderGardenResult(r, verse) {
+  document.getElementById("garden-reset-btn").style.display = "flex";
   const card = document.getElementById("garden-result");
   card.innerHTML = `
     <div class="result-name">🌿 ${r.name || "Unknown Plant"}</div>
