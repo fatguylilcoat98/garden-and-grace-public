@@ -2,8 +2,6 @@
 # The Good Neighbor Guard
 # Built by Christopher Hughes · Sacramento, CA
 # Truth · Safety · We Got Your Back
-#
-# PUBLIC VERSION — separate from family build.
 
 services:
   - type: web
@@ -14,22 +12,32 @@ services:
     buildCommand: pip install -r backend/requirements.txt
     startCommand: gunicorn backend.main:app --worker-class uvicorn.workers.UvicornWorker --timeout 120 --workers 1 --preload
     envVars:
+      # ── AI ───────────────────────────────────────────────
       - key: ANTHROPIC_API_KEY
         sync: false
-      - key: SENDGRID_API_KEY
-        sync: false
-      - key: FROM_EMAIL
-        sync: false
+      # ── App ──────────────────────────────────────────────
       - key: APP_URL
-        sync: false
+        sync: false           # e.g. https://garden-and-grace-public.onrender.com
       - key: ENV
         value: production
       - key: DB_PATH
         value: /var/data/garden_grace_public.db
-      - key: GG_COOLDOWN_SECONDS
-        value: "20"
-      - key: GG_DAILY_LIMIT
-        value: "8"
+      - key: FREE_DAILY_LIMIT
+        value: "5"
+      # ── Supabase Auth ────────────────────────────────────
+      - key: SUPABASE_URL
+        sync: false           # https://<project-ref>.supabase.co
+      - key: SUPABASE_ANON_KEY
+        sync: false           # public anon key (safe in browser)
+      - key: SUPABASE_JWT_SECRET
+        sync: false           # used to verify JWTs server-side
+      # ── Stripe Billing ───────────────────────────────────
+      - key: STRIPE_SECRET_KEY
+        sync: false           # sk_live_... or sk_test_...
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false           # whsec_...
+      - key: STRIPE_PRICE_ID
+        sync: false           # price_... (premium subscription)
     disk:
       name: garden-grace-public-data
       mountPath: /var/data

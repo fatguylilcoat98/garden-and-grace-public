@@ -1,25 +1,43 @@
 """
-Garden & Grace — The Good Neighbor Guard
-Built by Christopher Hughes · Sacramento, CA
-Created with the help of AI collaborators (Claude · GPT · Gemini · Groq)
-Truth · Safety · We Got Your Back
-"""
+Garden & Grace — Auth: verify Supabase JWT.
 
+Supabase issues HS256 JWTs signed with SUPABASE_JWT_SECRET. We extract
+the user id (`sub`) and email from claims to identify the user.
+"""
+import os
 from fastapi import Header, HTTPException
-from .db import get_db, query_one
+import jwt
+
+
+SUPABASE_JWT_SECRET = os.environ.get("SUPABASE_JWT_SECRET", "")
+
 
 def get_current_user(authorization: str = Header(None)):
-    """Dependency: validates session token from Authorization header."""
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Not logged in.")
-    token = authorization.split(" ", 1)[1]
-    with get_db() as conn:
-        row = query_one(conn, """
-            SELECT u.id, u.name, u.email
-            FROM sessions s
-            JOIN users u ON s.user_id = u.id
-            WHERE s.session_token = $1
-        """, [token])
-    if not row:
-        raise HTTPException(status_code=401, detail="Session expired. Please log in again.")
-    return row
+    """FastAPI dependency: returns {id, email} for the authenticated user."""
+    if not SUPABASE_JWT_SECRET:
+        raise HTTPException(
+            status_code=503,
+            detail="Auth not configured. Set SUPABASE_JWT_SECRET on the server.",
+        )
+    if not authorization or not authorization.lower().startswith("bearer "):
+        raise HTTPException(status_code=401, detail="Not signed in.")
+    token = authorization.split(" ", 1)[1].strip()
+    try:
+        claims = jwt.decode(
+            token,
+            SUPABASE_JWT_SECRET,
+            algorithms=["HS256"],
+            audience="authenticated",
+        )
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Session expired. Please sign in again.")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid session. Please sign in again.")
+
+    user_id = claims.get("sub")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Invalid session.")
+    return {
+        "id": user_id,
+        "email": claims.get("email") or "",
+    }

@@ -1,19 +1,15 @@
 /*
-  Garden & Grace — The Good Neighbor Guard
-  Recipe Builder: Photo → full recipe + shopping list + PDF email
+  Garden & Grace — Recipe Builder: photo → full recipe + shopping list.
 */
 
 let recipeFile = null;
-let recipeAnalyzed = false;
 
 function initRecipe() {
   showScreen("screen-recipe");
   resetRecipe();
   setupPhotoUpload("recipe-upload-area", "recipe-input", "recipe-preview", (file) => {
     recipeFile = file;
-    recipeAnalyzed = false;
     document.getElementById("recipe-analyze-btn").style.display = "flex";
-    document.getElementById("recipe-email-btn").style.display = "none";
     document.getElementById("recipe-result").classList.remove("visible");
     document.getElementById("recipe-verse").classList.remove("visible");
   });
@@ -21,11 +17,9 @@ function initRecipe() {
 
 function resetRecipe() {
   recipeFile = null;
-  recipeAnalyzed = false;
   document.getElementById("recipe-upload-area").style.display = "block";
   document.getElementById("recipe-preview").style.display = "none";
   document.getElementById("recipe-analyze-btn").style.display = "none";
-  document.getElementById("recipe-email-btn").style.display = "none";
   document.getElementById("recipe-result").classList.remove("visible");
   document.getElementById("recipe-verse").classList.remove("visible");
   document.getElementById("recipe-input").value = "";
@@ -42,30 +36,9 @@ async function analyzeRecipe() {
     const data = await apiPost("/features/recipe", form, true);
     hideLoading("recipe");
     renderRecipeResult(data.result, data.verse);
-    recipeAnalyzed = true;
-    document.getElementById("recipe-email-btn").style.display = "flex";
   } catch (err) {
     hideLoading("recipe");
-    toast(err.message, "error");
-  }
-}
-
-async function emailRecipePdf() {
-  if (!recipeFile) return;
-  const btn = document.getElementById("recipe-email-btn");
-  btn.disabled = true;
-  btn.textContent = "Sending… 📨";
-
-  try {
-    const form = new FormData();
-    form.append("image", recipeFile);
-    const data = await apiPost("/features/recipe/email", form, true);
-    toast(`✅ ${data.message}`, "success");
-  } catch (err) {
-    toast(err.message, "error");
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = "📧 Send Recipe to My Email";
+    if (err.message !== "LIMIT_REACHED") toast(err.message, "error");
   }
 }
 
