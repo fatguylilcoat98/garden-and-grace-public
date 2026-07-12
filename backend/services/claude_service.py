@@ -4,32 +4,100 @@ The Good Neighbor Guard
 Built by Christopher Hughes · Sacramento, CA
 Created with the help of AI collaborators (Claude · GPT · Gemini · Groq)
 Truth · Safety · We Got Your Back
+
+── AI ENGINE ────────────────────────────────────────────────────────────────
+The app used to run every photo through Claude OPUS — the most expensive model
+there is. This file now lets you pick the engine with two environment vars,
+with NO code changes and no change to how the rest of the app calls it:
+
+    AI_PROVIDER   "anthropic" (default) or "groq"
+    AI_MODEL      optional — override the model name for the chosen provider
+
+Defaults:
+    anthropic  ->  claude-haiku-4-5   (keeps Claude's strong photo ID,
+                                        ~20-30x cheaper than Opus)
+    groq       ->  meta-llama/llama-4-scout-17b-16e-instruct  (nearly free +
+                                        fast, but TEST photo accuracy first —
+                                        cheap models are weaker at pinning down
+                                        exact species. Verify the current Groq
+                                        vision model name at console.groq.com.)
+
+Keys read from the environment: ANTHROPIC_API_KEY / GROQ_API_KEY.
+Groq is OpenAI-compatible, so it's driven through the openai client.
 """
 
-import anthropic
 import base64
-import os
 import json
+import os
 from typing import Optional
 
-client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
-MODEL = "claude-opus-4-5"
+PROVIDER = os.environ.get("AI_PROVIDER", "anthropic").strip().lower()
+
+_DEFAULT_MODEL = {
+    "anthropic": "claude-haiku-4-5",
+    "groq": "meta-llama/llama-4-scout-17b-16e-instruct",
+}
+MODEL = os.environ.get("AI_MODEL", "").strip() or _DEFAULT_MODEL.get(PROVIDER, "claude-haiku-4-5")
+
+_client = None
+
+
+def _get_client():
+    """Build the right client once, lazily, so a missing key never crashes
+    import — it surfaces as a clean error at call time instead."""
+    global _client
+    if _client is not None:
+        return _client
+    if PROVIDER == "groq":
+        from openai import OpenAI
+        _client = OpenAI(
+            base_url="https://api.groq.com/openai/v1",
+            api_key=os.environ.get("GROQ_API_KEY"),
+        )
+    else:  # anthropic (default)
+        import anthropic
+        _client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+    return _client
+
 
 def _encode_image(image_bytes: bytes, media_type: str = "image/jpeg") -> dict:
+    """One image, in whichever shape the current provider expects."""
     encoded = base64.standard_b64encode(image_bytes).decode("utf-8")
+    if PROVIDER == "groq":
+        return {
+            "type": "image_url",
+            "image_url": {"url": f"data:{media_type};base64,{encoded}"},
+        }
     return {
         "type": "image",
-        "source": {"type": "base64", "media_type": media_type, "data": encoded}
+        "source": {"type": "base64", "media_type": media_type, "data": encoded},
     }
 
-def _ask_claude(system: str, messages: list, max_tokens: int = 1200) -> str:
-    response = client.messages.create(
-        model=MODEL,
-        max_tokens=max_tokens,
-        system=system,
-        messages=messages
-    )
-    return response.content[0].text
+
+def _ask(system: str, messages: list, max_tokens: int = 1200) -> str:
+    """Send one request to the active provider and return the raw text.
+    Never raises — a provider error comes back as JSON the app can show."""
+    try:
+        client = _get_client()
+        if PROVIDER == "groq":
+            full = [{"role": "system", "content": system}] + messages
+            resp = client.chat.completions.create(
+                model=MODEL, max_tokens=max_tokens, messages=full,
+            )
+            return resp.choices[0].message.content or ""
+        # anthropic
+        resp = client.messages.create(
+            model=MODEL, max_tokens=max_tokens, system=system, messages=messages,
+        )
+        return resp.content[0].text
+    except Exception as e:
+        # Graceful: the feature shows a friendly error instead of a 500.
+        return json.dumps({
+            "error": "The identification service is having trouble right now. "
+                     "Please try again in a moment.",
+            "detail": str(e)[:200],
+        })
+
 
 # ── GARDEN ──────────────────────────────────────────────────────────────────
 
@@ -50,7 +118,7 @@ Respond ONLY with valid JSON in this exact shape:
         _encode_image(image_bytes, media_type),
         {"type": "text", "text": "What plant is this? Give me your full gardening guidance."}
     ]}]
-    raw = _ask_claude(system, messages, 1000)
+    raw = _ask(system, messages, 1000)
     return _safe_parse(raw)
 
 # ── BIRDS & WILDLIFE ─────────────────────────────────────────────────────────
@@ -73,7 +141,7 @@ Respond ONLY with valid JSON:
         _encode_image(image_bytes, media_type),
         {"type": "text", "text": "What bird or animal is this? Tell me everything wonderful about it."}
     ]}]
-    raw = _ask_claude(system, messages, 1000)
+    raw = _ask(system, messages, 1000)
     return _safe_parse(raw)
 
 # ── FISHING ──────────────────────────────────────────────────────────────────
@@ -108,7 +176,7 @@ Respond ONLY with valid JSON:
 For hot_spots: suggest general types of areas (weed lines, shaded banks, creek mouths, rocky points, deeper ledges, coves, calm pockets near structure, etc.) — NOT exact coordinates or named locations unless you are confident. Be honest about what is inferred."""
     location_str = location_name if location_name else f"coordinates {lat:.4f}, {lon:.4f}"
     messages = [{"role": "user", "content": f"Give me a complete fishing report for {location_str} today. Include outlook, best times, species activity, bait ideas, water/weather impact, and hot spot suggestions for where to start."}]
-    raw = _ask_claude(system, messages, 1500)
+    raw = _ask(system, messages, 1500)
     return _safe_parse(raw)
 
 # ── RECIPE BUILDER ────────────────────────────────────────────────────────────
@@ -141,7 +209,7 @@ Respond ONLY with valid JSON:
         _encode_image(image_bytes, media_type),
         {"type": "text", "text": "What dish is this? Give me the full recipe with ingredients, instructions, and a shopping list."}
     ]}]
-    raw = _ask_claude(system, messages, 1500)
+    raw = _ask(system, messages, 1500)
     return _safe_parse(raw)
 
 # ── BUILD IT ──────────────────────────────────────────────────────────────────
@@ -175,7 +243,7 @@ Respond ONLY with valid JSON:
         _encode_image(image_bytes, media_type),
         {"type": "text", "text": "What is this structure? Give me a complete build plan with materials list and step-by-step instructions."}
     ]}]
-    raw = _ask_claude(system, messages, 1500)
+    raw = _ask(system, messages, 1500)
     return _safe_parse(raw)
 
 # ── CATCH ID + RECIPE ────────────────────────────────────────────────────────
@@ -210,7 +278,7 @@ Respond ONLY with valid JSON:
         _encode_image(image_bytes, media_type),
         {"type": "text", "text": "I just caught this fish! What is it, and give me a great recipe to cook it."}
     ]}]
-    raw = _ask_claude(system, messages, 1800)
+    raw = _ask(system, messages, 1800)
     return _safe_parse(raw)
 
 # ── HELPERS ───────────────────────────────────────────────────────────────────

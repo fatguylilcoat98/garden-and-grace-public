@@ -1,0 +1,16 @@
+# Systemd service — makes the app start on boot and stay up.
+# EDIT the two lines marked CHANGE, then follow SELF-HOST.md to install it.
+[Unit]
+Description=Garden & Grace (Public)
+After=network.target
+
+[Service]
+WorkingDirectory=/opt/garden-and-grace-public      # CHANGE if you cloned elsewhere
+User=chris                                          # CHANGE to your server username
+EnvironmentFile=/opt/garden-and-grace-public/.env  # CHANGE to match WorkingDirectory
+ExecStart=/opt/garden-and-grace-public/.venv/bin/uvicorn backend.main:app --host 0.0.0.0 --port 8000
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
