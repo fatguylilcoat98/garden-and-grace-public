@@ -42,17 +42,25 @@ GROQ_API_KEY=gsk_...your groq key...
 Test the photo IDs yourself first — cheap models are weaker at naming exact
 species. If it's wrong a lot, set `AI_PROVIDER=anthropic` again.
 
-## Make it start on boot (optional, do after it works)
+## Make it always-on (start on boot, restart if it crashes)
 
-1. Edit `deploy/garden-and-grace.service` — fix the 3 lines marked CHANGE
-   (the folder path and your username).
-2. Install it:
+This is the "set it and forget it" step — like Render, but on your box. One
+command. It figures out your username and folder automatically, so there's
+nothing to hand-edit:
 
 ```
-sudo cp deploy/garden-and-grace.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now garden-and-grace
-sudo systemctl status garden-and-grace
+sudo bash deploy/install-service.sh
+```
+
+That's it. The app now runs in the background, comes back on reboot, and
+restarts itself if it ever crashes. You can close the terminal.
+
+Handy commands afterward:
+
+```
+sudo journalctl -u garden-and-grace -f     # watch the logs live
+sudo systemctl restart garden-and-grace    # restart it (e.g. after changing .env)
+sudo systemctl stop garden-and-grace       # stop it
 ```
 
 ## Updating later
