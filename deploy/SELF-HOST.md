@@ -13,19 +13,21 @@ cd garden-and-grace-public
 bash deploy/setup.sh
 ```
 
-Then open the new **.env** file in VS Code and fill in one line:
+Then put two lines in the new **.env** file (you can paste these straight in
+the terminal instead of opening an editor):
 
 ```
-ANTHROPIC_API_KEY=sk-ant-...your key...
+printf '\nANTHROPIC_API_KEY=sk-ant-...your key...\n' >> .env
+printf '\nPORT=8001\n' >> .env
 ```
 
-Save it, then start the app:
+Port **8001** keeps it clear of Claspion (which uses 8000). Then start the app:
 
 ```
 bash deploy/run.sh
 ```
 
-Open **http://YOUR-TAILSCALE-IP:8000** in a browser. That's it — it's live,
+Open **http://YOUR-TAILSCALE-IP:8001** in a browser. That's it — it's live,
 and it's now using cheap Claude Haiku instead of expensive Opus.
 
 ## Want it even cheaper (Groq)?
@@ -40,17 +42,25 @@ GROQ_API_KEY=gsk_...your groq key...
 Test the photo IDs yourself first — cheap models are weaker at naming exact
 species. If it's wrong a lot, set `AI_PROVIDER=anthropic` again.
 
-## Make it start on boot (optional, do after it works)
+## Make it always-on (start on boot, restart if it crashes)
 
-1. Edit `deploy/garden-and-grace.service` — fix the 3 lines marked CHANGE
-   (the folder path and your username).
-2. Install it:
+This is the "set it and forget it" step — like Render, but on your box. One
+command. It figures out your username and folder automatically, so there's
+nothing to hand-edit:
 
 ```
-sudo cp deploy/garden-and-grace.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now garden-and-grace
-sudo systemctl status garden-and-grace
+sudo bash deploy/install-service.sh
+```
+
+That's it. The app now runs in the background, comes back on reboot, and
+restarts itself if it ever crashes. You can close the terminal.
+
+Handy commands afterward:
+
+```
+sudo journalctl -u garden-and-grace -f     # watch the logs live
+sudo systemctl restart garden-and-grace    # restart it (e.g. after changing .env)
+sudo systemctl stop garden-and-grace       # stop it
 ```
 
 ## Updating later
