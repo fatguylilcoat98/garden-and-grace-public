@@ -1,128 +1,85 @@
 """
-Garden & Grace — Public Edition
-The Good Neighbor Guard
-Built by Christopher Hughes · Sacramento, CA
-Created with the help of AI collaborators (Claude · GPT · Gemini · Groq)
-Truth · Safety · We Got Your Back
-
-PUBLIC VERSION — separate from the family build.
+Garden & Grace — Public Edition · FastAPI entry.
 """
-
-from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, JSONResponse
 import os
-import time
-from threading import Lock
 
+from fastapi import Depends, FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+
+from .auth_middleware import get_current_user
 from .db import init_db
+from .routes.billing import router as billing_router
 from .routes.features import router as features_router
-
-app = FastAPI(title="Garden & Grace", version="2.0.0-public")
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# ── RATE LIMITING ────────────────────────────────────────────────────────────
-COOLDOWN_SECONDS = int(os.environ.get("GG_COOLDOWN_SECONDS", "20"))
-DAILY_LIMIT_FREE = int(os.environ.get("GG_DAILY_LIMIT", "8"))
-
-_rate_lock = Lock()
-_last_request = {}
-_daily_counts = {}
+from .services import quota
 
 
-def _get_client_ip(request: Request) -> str:
-    fwd = request.headers.get("x-forwarded-for", "")
-    return fwd.split(",")[0].strip() if fwd else (request.client.host or "unknown")
+app = FastAPI(title="Garden & Grace", version="2.1.0-public")
 
 
-def _check_limits(ip: str):
-    """Returns None if OK, or a response dict if limited."""
-    now = time.time()
-    today = time.strftime("%Y-%m-%d")
-
-    with _rate_lock:
-        # Cooldown check
-        last = _last_request.get(ip, 0)
-        if now - last < COOLDOWN_SECONDS:
-            wait = int(COOLDOWN_SECONDS - (now - last))
-            return {"type": "cooldown", "message": f"Please wait {wait} seconds before your next request."}
-
-        # Daily cap check
-        day_data = _daily_counts.get(ip)
-        if day_data and day_data["date"] == today:
-            if day_data["count"] >= DAILY_LIMIT_FREE:
-                return {"type": "daily", "message": "Daily limit reached for now. Please try again tomorrow."}
-        elif not day_data or day_data["date"] != today:
-            _daily_counts[ip] = {"date": today, "count": 0}
-
-        # All clear — record this request
-        _last_request[ip] = now
-        _daily_counts[ip]["count"] = _daily_counts[ip].get("count", 0) + 1
-
-    return None
-
-
-@app.middleware("http")
-async def rate_limit_middleware(request: Request, call_next):
-    if request.url.path.startswith("/features/") and request.method == "POST":
-        ip = _get_client_ip(request)
-        limit = _check_limits(ip)
-        if limit:
-            return JSONResponse(
-                status_code=429,
-                content={
-                    "status": "limit_reached",
-                    "message": limit["message"],
-                    "type": limit["type"],
-                },
-            )
-    return await call_next(request)
+# ── CORS ─────────────────────────────────────────────────────────────────────
+# In production, lock to APP_URL. For local dev (no APP_URL set), permit any
+# origin without credentials so a separate Vite/whatever dev server still works.
+APP_URL = os.environ.get("APP_URL", "")
+if APP_URL:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[APP_URL],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+else:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=False,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 
 app.include_router(features_router)
+app.include_router(billing_router)
 
+
+# ── PUBLIC INFO ──────────────────────────────────────────────────────────────
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "app": "Garden & Grace Public", "version": "2.0.0"}
+    return {"status": "ok", "app": "Garden & Grace Public", "version": "2.1.0"}
+
+
+@app.get("/config")
+def public_config():
+    """Bootstrap values the frontend needs before sign-in.
+
+    The Supabase anon key is safe to ship to the browser — RLS and the
+    JWT secret keep the backend authoritative.
+    """
+    return {
+        "supabaseUrl": os.environ.get("SUPABASE_URL", ""),
+        "supabaseAnonKey": os.environ.get("SUPABASE_ANON_KEY", ""),
+        "billingEnabled": bool(os.environ.get("STRIPE_SECRET_KEY") and os.environ.get("STRIPE_PRICE_ID")),
+        "freeDailyLimit": quota.FREE_DAILY_LIMIT,
+    }
 
 
 @app.get("/usage")
-def usage_info(request: Request):
-    """Let frontend check remaining daily uses."""
-    ip = _get_client_ip(request)
-    today = time.strftime("%Y-%m-%d")
-    with _rate_lock:
-        day_data = _daily_counts.get(ip)
-        used = day_data["count"] if day_data and day_data["date"] == today else 0
-    return {
-        "daily_limit": DAILY_LIMIT_FREE,
-        "used_today": used,
-        "remaining": max(0, DAILY_LIMIT_FREE - used),
-        "tier": "free",
-    }
+def usage_info(user=Depends(get_current_user)):
+    """Authenticated quota status (used by the header counter)."""
+    return quota.get_status(user["id"])
 
 
 # ── BUG TESTER ───────────────────────────────────────────────────────────────
 
 @app.get("/test/api")
 def test_api(live: bool = False):
-    """Run the full test suite. Add ?live=true to include the fishing API call."""
     from .tests.test_suite import run_all_tests
     results = run_all_tests()
-
-    # Skip the expensive fishing API test unless ?live=true
     if not live:
         results = [r for r in results if "Fishing: Response" not in r.get("test", "")]
-
     passed = sum(1 for r in results if r.get("passed"))
     failed = len(results) - passed
     return {
@@ -135,6 +92,8 @@ def test_api(live: bool = False):
         "results": results,
     }
 
+
+# ── STATIC FRONTEND ──────────────────────────────────────────────────────────
 
 frontend_path = os.path.join(os.path.dirname(__file__), "..", "frontend")
 if os.path.exists(frontend_path):

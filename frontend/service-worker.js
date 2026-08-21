@@ -6,13 +6,14 @@
 */
 
 // ── Bump this version every deploy to auto-bust Aubrey's cache ──
-const CACHE_NAME = "garden-grace-v5";
+const CACHE_NAME = "garden-grace-v6";
 
 const STATIC_ASSETS = [
   "/",
   "/static/css/app.css",
   "/static/js/app.js",
   "/static/js/auth.js",
+  "/static/js/billing.js",
   "/static/js/garden.js",
   "/static/js/birds.js",
   "/static/js/fishing.js",
@@ -38,8 +39,15 @@ self.addEventListener("activate", event => {
 });
 
 self.addEventListener("fetch", event => {
-  // API calls: always network, never cache
-  if (event.request.url.includes("/auth/") || event.request.url.includes("/features/")) {
+  // API + auth + billing + config: always network, never cache
+  const u = event.request.url;
+  if (
+    u.includes("/features/") ||
+    u.includes("/billing/") ||
+    u.includes("/config") ||
+    u.includes("/usage") ||
+    u.includes("supabase.co")
+  ) {
     return;
   }
 

@@ -1,15 +1,11 @@
 /*
-  Garden & Grace — Public Edition
-  The Good Neighbor Guard
-  Built by Christopher Hughes · Sacramento, CA
-  Created with the help of AI collaborators (Claude · GPT · Gemini · Groq)
+  Garden & Grace — Public Edition · app.js
   Truth · Safety · We Got Your Back
 */
 
-const API = "";  // Same origin
+const API = "";  // same origin
 
 // ── Verse/Content Mode ──────────────────────────────────────
-// Each content type can be toggled independently
 function getContentToggles() {
   try {
     const saved = localStorage.getItem("gg_content_toggles");
@@ -30,14 +26,11 @@ function getVerseMode() {
   return "off";
 }
 
-function verseParam() {
-  return "verse_mode=" + getVerseMode();
-}
+function verseParam() { return "verse_mode=" + getVerseMode(); }
 
 function toggleContent(type) {
   const t = getContentToggles();
   t[type] = !t[type];
-  // Only one can be active at a time (radio-style)
   if (t[type]) {
     if (type !== "scripture") t.scripture = false;
     if (type !== "sayings") t.sayings = false;
@@ -52,9 +45,7 @@ function updateMenuToggles() {
   const t = getContentToggles();
   ["scripture", "sayings", "jokes"].forEach(key => {
     const toggle = document.getElementById(`toggle-${key}`);
-    if (toggle) {
-      toggle.classList.toggle("active", t[key]);
-    }
+    if (toggle) toggle.classList.toggle("active", t[key]);
   });
 }
 
@@ -75,7 +66,7 @@ function refreshDailyVerse() {
   }).catch(() => {});
 }
 
-// ── Hamburger Menu ──────────────────────────────────────────
+// ── Hamburger ──────────────────────────────────────────────
 function toggleMenu() {
   const menu = document.getElementById("hamburger-panel");
   const overlay = document.getElementById("menu-overlay");
@@ -92,38 +83,14 @@ function closeMenu() {
   if (overlay) overlay.classList.remove("open");
 }
 
-// ── State ───────────────────────────────────────────────────
+// ── Shared state ───────────────────────────────────────────
 const state = {
   user: null,
-  sessionToken: null,
+  billing: null,
+  billing_enabled_known: false,
 };
 
-function loadSession() {
-  const token = localStorage.getItem("gg_session");
-  const user  = localStorage.getItem("gg_user");
-  if (token && user) {
-    state.sessionToken = token;
-    state.user = JSON.parse(user);
-    return true;
-  }
-  return false;
-}
-
-function saveSession(token, user) {
-  state.sessionToken = token;
-  state.user = user;
-  localStorage.setItem("gg_session", token);
-  localStorage.setItem("gg_user", JSON.stringify(user));
-}
-
-function clearSession() {
-  state.sessionToken = null;
-  state.user = null;
-  localStorage.removeItem("gg_session");
-  localStorage.removeItem("gg_user");
-}
-
-// ── Router ──────────────────────────────────────────────────
+// ── Router ─────────────────────────────────────────────────
 function showScreen(id) {
   document.querySelectorAll(".screen").forEach(s => {
     s.classList.remove("active");
@@ -139,19 +106,22 @@ function showScreen(id) {
 }
 
 function goHome() {
-  if (!state.sessionToken) { goAuth(); return; }
+  if (!isSignedIn()) { goAuth(); return; }
   showScreen("screen-home");
 }
 
 function goAuth() {
-  clearSession();
   showScreen("screen-auth");
 }
 
-// ── API Helper ──────────────────────────────────────────────
+// ── API helpers (Supabase Bearer token) ────────────────────
+async function _authHeader() {
+  const token = await getAccessToken();
+  return token ? { "Authorization": "Bearer " + token } : {};
+}
+
 async function apiPost(path, data, isFormData = false) {
-  const headers = {};
-  if (state.sessionToken) headers["Authorization"] = "Bearer " + state.sessionToken;
+  const headers = await _authHeader();
   if (!isFormData) headers["Content-Type"] = "application/json";
 
   const sep = path.includes("?") ? "&" : "?";
@@ -159,65 +129,42 @@ async function apiPost(path, data, isFormData = false) {
   const response = await fetch(url, {
     method: "POST",
     headers,
-    body: isFormData ? data : JSON.stringify(data),
+    body: isFormData ? data : JSON.stringify(data || {}),
   });
 
-  const json = await response.json();
+  let json = {};
+  try { json = await response.json(); } catch {}
 
-  if (response.status === 429 || json.status === "limit_reached") {
-    const msg = json.message || "Daily limit reached. Please try again tomorrow.";
-    showLimitMessage(msg, json.type);
+  if (response.status === 402) {
+    showPaywall(json.detail || "You've used your free queries for today.");
+    refreshBillingStatus();
     throw new Error("LIMIT_REACHED");
   }
-
+  if (response.status === 401) {
+    toast("Session expired. Please sign in again.", "error");
+    signOut();
+    throw new Error("UNAUTHORIZED");
+  }
   if (!response.ok) throw new Error(json.detail || "Something went wrong.");
+
+  if (json.quota) {
+    state.billing = Object.assign({}, state.billing, json.quota);
+    renderQuotaCounter(state.billing);
+  }
   return json;
 }
 
 async function apiGet(path) {
-  const headers = {};
-  if (state.sessionToken) headers["Authorization"] = "Bearer " + state.sessionToken;
+  const headers = await _authHeader();
   const response = await fetch(API + path, { headers });
-  const json = await response.json();
+  let json = {};
+  try { json = await response.json(); } catch {}
+  if (response.status === 401) throw new Error("Not signed in.");
   if (!response.ok) throw new Error(json.detail || "Something went wrong.");
   return json;
 }
 
-// ── Rate Limit UI ───────────────────────────────────────────
-function showLimitMessage(msg, type) {
-  document.querySelectorAll(".loading-overlay").forEach(el => el.classList.remove("visible"));
-  document.querySelectorAll('[id$="-content"]').forEach(el => el.style.display = "");
-
-  const existing = document.getElementById("limit-overlay");
-  if (existing) existing.remove();
-
-  const overlay = document.createElement("div");
-  overlay.id = "limit-overlay";
-  overlay.style.cssText = "position:fixed;inset:0;z-index:9999;background:rgba(30,40,30,0.95);display:flex;align-items:center;justify-content:center;padding:24px;";
-  overlay.innerHTML = '<div style="text-align:center;max-width:360px;">' +
-    '<div style="font-size:40px;margin-bottom:16px;">🌿</div>' +
-    '<h2 style="font-size:20px;color:#e8dcc8;margin-bottom:12px;font-family:Georgia,serif;">' +
-    (type === "daily" ? "Daily limit reached" : "Just a moment") + '</h2>' +
-    '<p style="font-size:15px;color:#a09880;line-height:1.7;margin-bottom:24px;">' + msg + '</p>' +
-    '<button onclick="document.getElementById(\'limit-overlay\').remove()" ' +
-    'style="padding:12px 24px;background:transparent;border:1px solid #5a6a5a;color:#a09880;border-radius:8px;cursor:pointer;font-size:14px;">Go Back</button>' +
-    '</div>';
-  document.body.appendChild(overlay);
-}
-
-// ── Usage Counter ───────────────────────────────────────────
-async function updateUsageDisplay() {
-  try {
-    const usage = await apiGet("/usage");
-    const el = document.getElementById("usage-counter");
-    if (el) {
-      el.textContent = usage.remaining + " of " + usage.daily_limit + " uses remaining today";
-      el.style.display = "block";
-    }
-  } catch(e) { /* silent */ }
-}
-
-// ── Toast ───────────────────────────────────────────────────
+// ── Toast ──────────────────────────────────────────────────
 function toast(msg, type) {
   type = type || "success";
   const el = document.getElementById("toast");
@@ -226,7 +173,7 @@ function toast(msg, type) {
   setTimeout(() => el.classList.remove("show"), 3500);
 }
 
-// ── Loading helpers ─────────────────────────────────────────
+// ── Loading helpers ────────────────────────────────────────
 function showLoading(screenId, msg) {
   msg = msg || "Working on it...";
   var lo = document.getElementById(screenId + "-loading");
@@ -239,7 +186,7 @@ function hideLoading(screenId) {
   document.getElementById(screenId + "-content").style.display = "";
 }
 
-// ── Date helpers ────────────────────────────────────────────
+// ── Date helpers ───────────────────────────────────────────
 function getGreeting() {
   var h = new Date().getHours();
   if (h < 12) return "Good morning";
@@ -253,8 +200,7 @@ function formatDate() {
   });
 }
 
-// ── Photo upload helper (fixed for re-entry) ────────────────
-// Uses a registry to prevent duplicate event listeners
+// ── Photo upload helper ────────────────────────────────────
 const _uploadBound = {};
 
 function setupPhotoUpload(areaId, inputId, previewId, onFile) {
@@ -263,9 +209,7 @@ function setupPhotoUpload(areaId, inputId, previewId, onFile) {
   const preview = document.getElementById(previewId);
   if (!area || !input) return;
 
-  // Prevent duplicate binding
   if (_uploadBound[inputId]) {
-    // Already bound — just replace the callback
     _uploadBound[inputId].onFile = onFile;
     return;
   }
@@ -299,13 +243,17 @@ function setupPhotoUpload(areaId, inputId, previewId, onFile) {
   _uploadBound[inputId] = handler;
 }
 
-// ── Init ────────────────────────────────────────────────────
-document.addEventListener("DOMContentLoaded", function() {
+// ── Init ───────────────────────────────────────────────────
+document.addEventListener("DOMContentLoaded", async function() {
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("/static/service-worker.js").catch(function() {});
   }
 
-  if (loadSession()) {
+  await authReady();
+
+  if (typeof checkUpgradeReturn === "function") checkUpgradeReturn();
+
+  if (isSignedIn()) {
     initHome();
   } else {
     goAuth();
@@ -314,11 +262,11 @@ document.addEventListener("DOMContentLoaded", function() {
 
 function initHome() {
   showScreen("screen-home");
-  var name = state.user ? state.user.name : "Friend";
+  var name = (state.user && state.user.name) ? state.user.name : "Friend";
   document.getElementById("home-greeting").textContent = getGreeting() + ", " + name + " 🌿";
   document.getElementById("home-date").textContent = formatDate();
 
   refreshDailyVerse();
-  updateUsageDisplay();
+  refreshBillingStatus();
   updateMenuToggles();
 }

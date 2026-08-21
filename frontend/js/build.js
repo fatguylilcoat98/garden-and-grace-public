@@ -1,6 +1,5 @@
 /*
-  Garden & Grace — The Good Neighbor Guard
-  Build It: Photo → materials list + step-by-step build plan + PDF email
+  Garden & Grace — Build It: photo → materials list + step-by-step build plan.
 */
 
 let buildFile = null;
@@ -11,7 +10,6 @@ function initBuild() {
   setupPhotoUpload("build-upload-area", "build-input", "build-preview", (file) => {
     buildFile = file;
     document.getElementById("build-analyze-btn").style.display = "flex";
-    document.getElementById("build-email-btn").style.display = "none";
     document.getElementById("build-result").classList.remove("visible");
     document.getElementById("build-verse").classList.remove("visible");
   });
@@ -22,7 +20,6 @@ function resetBuild() {
   document.getElementById("build-upload-area").style.display = "block";
   document.getElementById("build-preview").style.display = "none";
   document.getElementById("build-analyze-btn").style.display = "none";
-  document.getElementById("build-email-btn").style.display = "none";
   document.getElementById("build-result").classList.remove("visible");
   document.getElementById("build-verse").classList.remove("visible");
   document.getElementById("build-input").value = "";
@@ -39,29 +36,9 @@ async function analyzeBuild() {
     const data = await apiPost("/features/build", form, true);
     hideLoading("build");
     renderBuildResult(data.result, data.verse);
-    document.getElementById("build-email-btn").style.display = "flex";
   } catch (err) {
     hideLoading("build");
-    toast(err.message, "error");
-  }
-}
-
-async function emailBuildPdf() {
-  if (!buildFile) return;
-  const btn = document.getElementById("build-email-btn");
-  btn.disabled = true;
-  btn.textContent = "Sending… 📨";
-
-  try {
-    const form = new FormData();
-    form.append("image", buildFile);
-    const data = await apiPost("/features/build/email", form, true);
-    toast(`✅ ${data.message}`, "success");
-  } catch (err) {
-    toast(err.message, "error");
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = "📧 Send Build Plan to My Email";
+    if (err.message !== "LIMIT_REACHED") toast(err.message, "error");
   }
 }
 
